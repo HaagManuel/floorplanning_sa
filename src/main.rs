@@ -2,11 +2,15 @@ mod simulated_annealing;
 mod parabola;
 mod knapsack;
 mod polish_expression;
+mod shape_function;
+mod rectangle;
 
 use crate::simulated_annealing::SimulatedAnnealing;
 // use crate::parabola::Parabola;
 // use crate::knapsack::Knapsack;
+// use crate::shape_function::ShapeFunction;
 use crate::polish_expression::*;
+use crate::rectangle::*;
 
 /*
 benchmark sets
@@ -31,12 +35,9 @@ benchmark sets
 fn main() {
     println!("Hello, SA!");
 
-    // high temperature random, low greedy
-
     // log r < delta / T
-
-    // setter?
     // init of temperature with avg
+
     let iterations = 10000;
     let initial_temperature = 2500.0;
     let decay = 0.99;
@@ -50,7 +51,6 @@ fn main() {
     // let max_weight = 8.0;
     // let p: Knapsack = Knapsack::initial_solution(weights, gains, penalty, max_weight);
     
-    // Tablle 10.1 
 
     // best (4 + 4) * (4 + 6) = 8 * 10 = 80, // 12H34H5HV
     let modules: Vec<Rectangle> = vec![
@@ -60,19 +60,25 @@ fn main() {
         Rectangle::new(4.0, 4.0), 
         Rectangle::new(3.0, 4.0)
         ];
-    // with rotated pieces
-    // let modules: Vec<Rectangle> = vec![
-    //     Rectangle::new(4.0, 6.0),
-    //     Rectangle::new(4.0, 4.0), 
-    //     Rectangle::new(4.0, 3.0), // rotated 
-    //     Rectangle::new(4.0, 4.0), 
-    //     Rectangle::new(4.0, 3.0) // rotated
-    //     ];
-    // todo how to rotate? our always rotate rectangles with min area
-    let mut p: PolishExpression = PolishExpression::new(modules);
-    sa.run(&mut p);
 
+    // let solution: Vec<ModuleNode> = vec![
+    //         ModuleNode::Module(0),
+    //         ModuleNode::Module(1),
+    //         ModuleNode::H(),
+    //         ModuleNode::Module(2),
+    //         ModuleNode::Module(3),
+    //         ModuleNode::H(),
+    //         ModuleNode::Module(4),
+    //         ModuleNode::H(),
+    //         ModuleNode::V()
+    // ];
     
 
+    let mut p: PolishExpression = PolishExpression::new(modules);
+    // p.set_solution(solution);
+    let v = p.eval_expression();
+    println!("{}", v);
+    // TODO benchmark shape function with branch or duplicate -> random generation of instances
+    sa.run(&mut p);
 
 }

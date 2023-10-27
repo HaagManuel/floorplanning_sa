@@ -21,7 +21,6 @@ pub struct SimulatedAnnealing {
 }
 
 impl SimulatedAnnealing {
-
     pub fn new(iterations: u64, initial_temperature: f64, decay: f64) -> SimulatedAnnealing {
         SimulatedAnnealing{
             iterations: iterations,
