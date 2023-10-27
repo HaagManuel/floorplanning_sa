@@ -4,6 +4,7 @@ mod knapsack;
 mod polish_expression;
 mod shape_function;
 mod rectangle;
+mod instance_generator;
 
 use crate::simulated_annealing::SimulatedAnnealing;
 // use crate::parabola::Parabola;
@@ -11,6 +12,7 @@ use crate::simulated_annealing::SimulatedAnnealing;
 // use crate::shape_function::ShapeFunction;
 use crate::polish_expression::*;
 use crate::rectangle::*;
+use crate::instance_generator::*;
 
 /*
 benchmark sets
@@ -28,6 +30,7 @@ benchmark sets
 - implement polish expression to check equivalence
 - analytical approach for comparison
 - state of the art method online?
+- only integer rectangles?
 
 1. naive polish expressions
 */
@@ -51,31 +54,9 @@ fn main() {
     // let max_weight = 8.0;
     // let p: Knapsack = Knapsack::initial_solution(weights, gains, penalty, max_weight);
     
-
-    // best (4 + 4) * (4 + 6) = 8 * 10 = 80, // 12H34H5HV
-    let modules: Vec<Rectangle> = vec![
-        Rectangle::new(4.0, 6.0),
-        Rectangle::new(4.0, 4.0), 
-        Rectangle::new(3.0, 4.0), 
-        Rectangle::new(4.0, 4.0), 
-        Rectangle::new(3.0, 4.0)
-        ];
-
-    // let solution: Vec<ModuleNode> = vec![
-    //         ModuleNode::Module(0),
-    //         ModuleNode::Module(1),
-    //         ModuleNode::H(),
-    //         ModuleNode::Module(2),
-    //         ModuleNode::Module(3),
-    //         ModuleNode::H(),
-    //         ModuleNode::Module(4),
-    //         ModuleNode::H(),
-    //         ModuleNode::V()
-    // ];
-    
-
-    let mut p: PolishExpression = PolishExpression::new(modules);
-    // p.set_solution(solution);
+    let instance = random_module_list(10, 1, 10);
+    println!("{:?}", instance);
+    let mut p: PolishExpression = PolishExpression::new(instance);
     let v = p.eval_expression();
     println!("{}", v);
     // TODO benchmark shape function with branch or duplicate -> random generation of instances
