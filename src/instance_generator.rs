@@ -1,12 +1,12 @@
-use rand::{distributions::{Distribution, Uniform}, rngs::ThreadRng};
-use crate::rectangle::Rectangle;
+use rand::distributions::{Distribution, Uniform};
+use crate::rectangle::*;
 
-pub fn random_module_list(number_of_modules: usize , min_size: usize, max_size: usize) -> Vec<Rectangle> {
+pub fn random_module_list(number_of_modules: Int , min_size: Int, max_size: Int) -> Vec<Rectangle> {
     let mut rng = rand::thread_rng();
-    let range = Uniform::<usize>::from(min_size..max_size);
+    let range = Uniform::<Int>::from(min_size..max_size);
     let modules: Vec<Rectangle> = 
             (0..number_of_modules)
-            .map(|_| Rectangle::new(range.sample(&mut rng) as f64, range.sample(&mut rng) as f64))
+            .map(|_| Rectangle::new(range.sample(&mut rng), range.sample(&mut rng)))
             .collect();
     modules
 }

@@ -97,7 +97,7 @@ impl PolishExpression {
             .max_by(|(_, &a), (_, &b)| a.area().partial_cmp(&b.area()).unwrap_or(Ordering::Equal))
             .map(|(index, _)| index)
             .unwrap();
-        last.points[min_area_index].area()
+        last.points[min_area_index].area() as f64
     }
 
     fn get_num_operator(solution: &Vec<ModuleNode>) -> Vec<usize> {

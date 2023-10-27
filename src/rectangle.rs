@@ -1,8 +1,10 @@
 
+pub type Int = u32;
+
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
 pub struct Rectangle {
-    pub width: f64,
-    pub heigth: f64,
+    pub width: Int,
+    pub heigth: Int,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -13,7 +15,7 @@ pub enum ModuleNode {
 }
 
 impl Rectangle {
-    pub fn new(width: f64, heigth: f64) -> Self {
+    pub fn new(width: Int, heigth: Int) -> Self {
         Rectangle {width, heigth}
     }
 
@@ -43,7 +45,7 @@ impl Rectangle {
         }
     }
 
-    pub fn area(&self) -> f64 {
+    pub fn area(&self) -> Int {
         self.width * self.heigth
     }
 }

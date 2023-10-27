@@ -39,15 +39,17 @@ fn main() {
     // TODO benchmark shape function with branch or duplicate -> random generation of instances
     println!("Hello, SA!");
     
-    let instance = random_module_list(10, 1, 10);
-    println!("{:?}", instance);
+    let number_of_modules = 100;
+    let min_size = 1;
+    let max_size = 4;
+    let instance = random_module_list(number_of_modules, min_size, max_size);
     let mut p: PolishExpression = PolishExpression::new(instance);
 
     // let initial_temperature = SimulatedAnnealing::estimate_initial_temperature(0.99, 100, &mut p);
     let initial_temperature = 2000.0;
     let iterations = 10000;
     let decay = 0.99;
-    println!("T: {}", initial_temperature);
+    println!("T: {}", SimulatedAnnealing::estimate_initial_temperature(0.99, 100, &mut p));
 
     let sa: SimulatedAnnealing = SimulatedAnnealing::new(iterations, initial_temperature, decay);
     sa.run(&mut p);
