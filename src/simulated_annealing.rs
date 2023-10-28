@@ -72,7 +72,7 @@ impl SimulatedAnnealing {
                 best_cost = cost;
                 best_solution = instance.copy_solution();
             }
-            if i % 100 == 0 {
+            if i % (self.iterations / 10) == 0 {
                 println!("it: {}, T {:.2}, cost {:.2}, delta {:.2}, best {:.2}", i, temperature, cost, delta, best_cost);
             }
             temperature *= self.decay;

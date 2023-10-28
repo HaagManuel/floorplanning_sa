@@ -3,8 +3,8 @@ use std::fs::File;
 use std::path::Path;
 use std::io::{self, prelude::*, BufReader};
 
-fn parse_ints(s: &String) -> Vec<u32> {
-    s.split(" ").map(|x|  x.parse::<u32>().unwrap()).collect()
+fn parse_ints(s: &String) -> Vec<Int> {
+    s.split(" ").map(|x|  x.parse::<Int>().unwrap()).collect()
 }
 
 pub fn parse_file<P>(file_path: P) -> io::Result<(Vec<Rectangle>, Vec<Net>)>

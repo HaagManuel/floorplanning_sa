@@ -39,6 +39,23 @@ impl ShapeFunction {
         sf.filter_pareto_points();
         sf
     }
+
+    pub fn reconstruct(a: &ShapeFunction, b: &ShapeFunction, v_or_h: ModuleNode, rect: &Rectangle) -> Option<(Rectangle, Rectangle)> {
+        let mut sf: ShapeFunction = ShapeFunction::default();
+        for i in 0..a.points.len() {
+            for j in 0..b.points.len() {
+                let r1 = a.points[i];
+                let r2 = b.points[j];
+                let combined = Rectangle::combine(r1, r2, v_or_h);
+                if combined == *rect {
+                    return Some((r1, r2));
+                }
+            }
+        }
+        None
+    }
+
+
 }
 
 impl FromIterator<Rectangle> for ShapeFunction {

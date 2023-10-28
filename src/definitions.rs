@@ -1,5 +1,5 @@
 
-pub type Int = u32;
+pub type Int = usize;
 
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
 pub struct Rectangle {
@@ -13,6 +13,13 @@ pub enum ModuleNode {
     V(),
     Module(usize), // id of module
 }
+
+impl Default for ModuleNode {
+    fn default() -> Self {
+        ModuleNode::Module((0))
+    }
+}
+
 
 #[derive(Debug)]
 pub struct Net {

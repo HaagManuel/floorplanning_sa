@@ -1,7 +1,12 @@
+use std::collections::VecDeque;
+
 use crate::simulated_annealing::{SAInstance, SAMove};
 use crate::shape_function::ShapeFunction;
 use crate::definitions::*;
 use rand::prelude::*;
+
+pub type Floorplan = Vec<(usize, usize, Rectangle, ModuleNode)>;
+
 
 #[derive(Default)]
 pub struct PolishExpression {
@@ -50,6 +55,7 @@ struct SlicingTreeNode {
     left: usize,
     right: usize,
     shape: ShapeFunction,
+    module_type: ModuleNode,
 }
 
 #[derive(Debug, Default)]
@@ -59,12 +65,58 @@ struct SlicingTree {
 }
 
 impl SlicingTree {
-    fn get_min_area(&self) -> Int {
+    fn get_bounding_box(&self) -> Rectangle {
         self.nodes[self.root].shape.points
             .iter()
             .min_by_key(|&&r| r.area())
             .unwrap()
-            .area()
+            .clone()
+    }
+    fn get_min_area(&self) -> Int {
+        self.get_bounding_box().area()
+    }
+
+    // (origin x, origin y, (width, height), ModuleNode)
+    fn get_floorplan(&self) -> Floorplan {
+        // same position in nodes and placement array
+        let mut placement: Vec<(usize, usize, Rectangle, ModuleNode)> = vec![(0,0, Rectangle::new(0,0), ModuleNode::H()); self.nodes.len()];
+        let mut queue: VecDeque<usize> = VecDeque::new();
+        let mut v: usize = self.root;
+        queue.push_back(v);
+        placement[v] = (0, 0, self.get_bounding_box(), self.nodes[v].module_type);
+        while queue.len() > 0 {
+            v = queue.pop_front().unwrap();
+            let l = self.nodes[v].left;
+            let r = self.nodes[v].right;
+            if l == r {
+                // leaf, Modulenode
+                continue;
+            }
+            let sf1 = &self.nodes[l].shape;
+            let sf2 = &self.nodes[r].shape;
+            let module_l = self.nodes[l].module_type;
+            let module_r = self.nodes[r].module_type;
+            let (x, y, rect, module_type) = placement[v];
+            let (r1, r2) = ShapeFunction::reconstruct(sf1, sf2, module_type, &rect).expect("reconstructing rectangle failed.");
+            placement[l] = (x, y, r1, module_l);
+            match module_type {
+                ModuleNode::H() => {
+                    placement[r] = (x, y + r1.heigth, r2, module_r);
+                }
+                ModuleNode::V() => {
+                    placement[r] = (x + r1.width, y, r2, module_r);
+                }
+                ModuleNode::Module(_) => panic!("parent should not be a module")
+            }
+            queue.push_back(l);
+            queue.push_back(r);
+        }
+        // filter modulenodes
+        let plan: Floorplan = placement
+            .into_iter()
+            .filter(|(_, _, _, module)| module.is_module())
+            .collect();
+        plan
     }
 }
 
@@ -103,6 +155,7 @@ impl PolishExpression {
                     let module: Rectangle = self.modules[id];
                     let sf = ShapeFunction::from_iter([module, module.transpose()]);
                     stack.push((sf, index));
+                    tree.nodes[index].module_type = *module_node;
                     index += 1;
                 }
                 _ => {
@@ -114,6 +167,8 @@ impl PolishExpression {
                     tree.nodes[right].shape = sf2;
                     tree.nodes[index].left = left;
                     tree.nodes[index].right = right;
+                    tree.nodes[index].module_type = *module_node;
+
                     index += 1;
                 }
             }
@@ -123,6 +178,19 @@ impl PolishExpression {
         tree.root = root;
         tree.nodes[root].shape = sf;
         tree
+    }
+
+    pub fn get_floorplan(&self) -> Floorplan {
+        self.get_slicing_tree().get_floorplan()
+    }
+
+    pub fn get_dead_area(&self) -> f64 {
+        let occupied_area: usize = self.modules
+            .iter()
+            .map(|rect| rect.area())
+            .sum();
+        let total_area = self.get_slicing_tree().get_min_area();
+        1.0 - (occupied_area as f64 / total_area as f64)
     }
 
     fn get_num_operator(&self) -> Vec<usize> {
@@ -189,17 +257,17 @@ impl PolishExpression {
 impl SAInstance<PolishExpressionMove, Vec<ModuleNode>> for PolishExpression {
     fn get_move(&mut self) -> PolishExpressionMove {
         let mut rng: ThreadRng = rand::thread_rng();
-        let r: u64 = rng.gen_range(0..3);
+        // let r: u64 = rng.gen_range(0..3);
+        let r: u64 = rng.gen_range(0..5);
         let move_type: PEMoveType = 
         match r {
             0 => self.get_swap_operands(),
             1 => self.get_invert_chain(),
-            2 => {
+            _ => {
                 // make sure prefix array is updated
                 self.num_operators = self.get_num_operator();
                 self.swap_operand_operator()
             },
-            _ => panic!("only 3 options"),
         };
         let old: f64 = self.eval_expression();
         move_type.apply(&mut self.solution);
