@@ -3,16 +3,18 @@ mod parabola;
 mod knapsack;
 mod polish_expression;
 mod shape_function;
-mod rectangle;
+mod definitions;
 mod instance_generator;
+mod parser;
 
 use crate::simulated_annealing::SimulatedAnnealing;
 // use crate::parabola::Parabola;
 // use crate::knapsack::Knapsack;
 // use crate::shape_function::ShapeFunction;
 use crate::polish_expression::*;
-use crate::rectangle::*;
+use crate::definitions::*;
 use crate::instance_generator::*;
+use crate::parser::*;
 
 /*
 benchmark sets
@@ -39,6 +41,12 @@ fn main() {
     // TODO benchmark shape function with branch or duplicate -> random generation of instances
     println!("Hello, SA!");
     
+    let(blocks, nets) = parse_file("benchmark/n10.floor").unwrap();
+
+    println!("{:?}", blocks);
+    println!("{:?}", nets);
+    return;
+
     let number_of_modules = 100;
     let min_size = 1;
     let max_size = 4;

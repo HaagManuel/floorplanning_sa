@@ -1,4 +1,4 @@
-use crate::rectangle::*;
+use crate::definitions::*;
 
 #[derive(Debug)]
 pub struct ShapeFunction {
@@ -70,50 +70,50 @@ mod tests {
     #[test]
     fn test_duplicates() {
         let mut sf: ShapeFunction = ShapeFunction::new();
-        sf.add(Rectangle::new(1.0, 1.0));
-        sf.add(Rectangle::new(1.0, 1.0));
-        sf.add(Rectangle::new(1.0, 1.0));
+        sf.add(Rectangle::new(1, 1));
+        sf.add(Rectangle::new(1, 1));
+        sf.add(Rectangle::new(1, 1));
         sf.filter_pareto_points();
-        assert_eq!(sf.points, vec![Rectangle::new(1.0, 1.0)]);
+        assert_eq!(sf.points, vec![Rectangle::new(1, 1)]);
     }
 
     #[test]
     fn test_pareto_points_1() {
         let mut sf: ShapeFunction = ShapeFunction::new();
-        sf.add(Rectangle::new(1.0, 1.0));
-        sf.add(Rectangle::new(2.0, 1.0));
-        sf.add(Rectangle::new(3.0, 1.0));
+        sf.add(Rectangle::new(1, 1));
+        sf.add(Rectangle::new(2, 1));
+        sf.add(Rectangle::new(3, 1));
         sf.filter_pareto_points();
-        assert_eq!(sf.points, vec![Rectangle::new(1.0, 1.0)]);
+        assert_eq!(sf.points, vec![Rectangle::new(1, 1)]);
     }
 
     #[test]
     fn test_pareto_points_2() {
         let mut sf: ShapeFunction = ShapeFunction::new();
-        sf.add(Rectangle::new(1.0, 5.0));
-        sf.add(Rectangle::new(2.0, 4.0));
-        sf.add(Rectangle::new(3.0, 3.0));
-        sf.add(Rectangle::new(4.0, 2.0));
-        sf.add(Rectangle::new(5.0, 1.0));
+        sf.add(Rectangle::new(1, 5));
+        sf.add(Rectangle::new(2, 4));
+        sf.add(Rectangle::new(3, 3));
+        sf.add(Rectangle::new(4, 2));
+        sf.add(Rectangle::new(5, 1));
 
-        sf.add(Rectangle::new(2.0, 5.0));
-        sf.add(Rectangle::new(3.0, 4.0));
-        sf.add(Rectangle::new(4.0, 3.0));
-        sf.add(Rectangle::new(5.0, 2.0));
-        sf.add(Rectangle::new(6.0, 1.0));
+        sf.add(Rectangle::new(2, 5));
+        sf.add(Rectangle::new(3, 4));
+        sf.add(Rectangle::new(4, 3));
+        sf.add(Rectangle::new(5, 2));
+        sf.add(Rectangle::new(6, 1));
 
-        sf.add(Rectangle::new(1.0, 6.0));
-        sf.add(Rectangle::new(2.0, 5.0));
-        sf.add(Rectangle::new(3.0, 4.0));
-        sf.add(Rectangle::new(4.0, 3.0));
-        sf.add(Rectangle::new(5.0, 2.0));
+        sf.add(Rectangle::new(1, 6));
+        sf.add(Rectangle::new(2, 5));
+        sf.add(Rectangle::new(3, 4));
+        sf.add(Rectangle::new(4, 3));
+        sf.add(Rectangle::new(5, 2));
         sf.filter_pareto_points();
         assert_eq!(sf.points, vec![
-            Rectangle::new(1.0, 5.0),
-            Rectangle::new(2.0, 4.0),
-            Rectangle::new(3.0, 3.0),
-            Rectangle::new(4.0, 2.0),
-            Rectangle::new(5.0, 1.0),
+            Rectangle::new(1, 5),
+            Rectangle::new(2, 4),
+            Rectangle::new(3, 3),
+            Rectangle::new(4, 2),
+            Rectangle::new(5, 1),
             ]);
     }
 }

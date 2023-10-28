@@ -1,6 +1,6 @@
 use crate::simulated_annealing::{SAInstance, SAMove};
 use crate::shape_function::ShapeFunction;
-use crate::rectangle::*;
+use crate::definitions::*;
 use rand::prelude::*;
 use std::cmp::Ordering;
 
