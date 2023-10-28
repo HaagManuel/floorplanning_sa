@@ -23,12 +23,13 @@ pub struct SimulatedAnnealing {
 impl SimulatedAnnealing {
 
     // estimates initial temperature by: T = -Delta_avg / log p
+    // average positive costs
     // p is probability that an inital move is accepted
     pub fn estimate_initial_temperature<T: SAInstance<Move, Solution>, Move: SAMove + Debug, Solution: Debug>(initial_prob: f64, num_moves: usize, instance: &mut T) -> f64 {
         let mut sum = 0.0;
         for _ in 0..num_moves {
             let _move = instance.get_move();
-            sum += _move.get_delta_cost(); 
+            sum += _move.get_delta_cost().abs(); 
         }
         let delta_avg = sum / num_moves as f64;
         let e: f64 = 1.0_f64.exp();
@@ -71,7 +72,7 @@ impl SimulatedAnnealing {
                 best_cost = cost;
                 best_solution = instance.copy_solution();
             }
-            if i % 50 == 0 {
+            if i % 100 == 0 {
                 println!("it: {}, T {:.2}, cost {:.2}, delta {:.2}, best {:.2}", i, temperature, cost, delta, best_cost);
             }
             temperature *= self.decay;

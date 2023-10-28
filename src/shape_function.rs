@@ -1,15 +1,11 @@
 use crate::definitions::*;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Default)]
 pub struct ShapeFunction {
     pub points: Vec<Rectangle>
 }
 
 impl ShapeFunction {
-    pub fn new() -> Self {
-        ShapeFunction {points: Vec::new()}
-    }
-
     pub fn add(&mut self, rectangle: Rectangle) {
         self.points.push(rectangle);
     }
@@ -31,16 +27,8 @@ impl ShapeFunction {
         self.points = new_vec;
     }
 
-    pub fn concat(a: &ShapeFunction, b: &ShapeFunction) -> ShapeFunction {
-        let mut sf: ShapeFunction = ShapeFunction::new();
-        sf.points.extend(a.points.iter());
-        sf.points.extend(b.points.iter());
-        sf.filter_pareto_points();
-        sf
-    }
-
     pub fn combine(a: &ShapeFunction, b: &ShapeFunction, v_or_h: ModuleNode) -> ShapeFunction {
-        let mut sf: ShapeFunction = ShapeFunction::new();
+        let mut sf: ShapeFunction = ShapeFunction::default();
         for i in 0..a.points.len() {
             for j in 0..b.points.len() {
                 let r1 = a.points[i];
@@ -55,7 +43,7 @@ impl ShapeFunction {
 
 impl FromIterator<Rectangle> for ShapeFunction {
     fn from_iter<I: IntoIterator<Item=Rectangle>>(iter: I) -> Self {
-        let mut sf = ShapeFunction::new();
+        let mut sf = ShapeFunction::default();
         for rect in iter {
             sf.add(rect);
         }
@@ -69,7 +57,7 @@ mod tests {
 
     #[test]
     fn test_duplicates() {
-        let mut sf: ShapeFunction = ShapeFunction::new();
+        let mut sf: ShapeFunction = ShapeFunction::default();
         sf.add(Rectangle::new(1, 1));
         sf.add(Rectangle::new(1, 1));
         sf.add(Rectangle::new(1, 1));
@@ -79,7 +67,7 @@ mod tests {
 
     #[test]
     fn test_pareto_points_1() {
-        let mut sf: ShapeFunction = ShapeFunction::new();
+        let mut sf: ShapeFunction = ShapeFunction::default();
         sf.add(Rectangle::new(1, 1));
         sf.add(Rectangle::new(2, 1));
         sf.add(Rectangle::new(3, 1));
@@ -89,7 +77,7 @@ mod tests {
 
     #[test]
     fn test_pareto_points_2() {
-        let mut sf: ShapeFunction = ShapeFunction::new();
+        let mut sf: ShapeFunction = ShapeFunction::default();
         sf.add(Rectangle::new(1, 5));
         sf.add(Rectangle::new(2, 4));
         sf.add(Rectangle::new(3, 3));

@@ -2,15 +2,16 @@ use crate::simulated_annealing::{SAInstance, SAMove};
 use crate::shape_function::ShapeFunction;
 use crate::definitions::*;
 use rand::prelude::*;
-use std::cmp::Ordering;
 
+#[derive(Default)]
 pub struct PolishExpression {
     solution: Vec<ModuleNode>,
     modules: Vec<Rectangle>,
+    nets: Vec<Net>,
+    tree: SlicingTree,
     num_operators: Vec<usize>, // to check if op3 is legal
     current_cost: f64,
 }
-
 
 #[derive(Debug)]
 pub enum PEMoveType {
@@ -44,64 +45,88 @@ pub struct PolishExpressionMove {
     delta_cost: f64,
 }
 
+#[derive(Debug, Clone, Default)]
+struct SlicingTreeNode {
+    left: usize,
+    right: usize,
+    shape: ShapeFunction,
+}
+
+#[derive(Debug, Default)]
+struct SlicingTree {
+    root: usize,
+    nodes: Vec<SlicingTreeNode>,
+}
+
+impl SlicingTree {
+    fn get_min_area(&self) -> Int {
+        self.nodes[self.root].shape.points
+            .iter()
+            .min_by_key(|&&r| r.area())
+            .unwrap()
+            .area()
+    }
+}
 
 impl PolishExpression {
-    pub fn new(modules: Vec<Rectangle>) -> Self {
-        // first all module ids than HVHVHVH
-        let n = modules.len();
-        // TODO maybe smarter initialization
-        // TODO index array to operand and operators
+    pub fn new(modules: Vec<Rectangle>, nets: Vec<Net>) -> Self {
+        let mut polish_expression = PolishExpression::default();
+        polish_expression.modules = modules;
+        polish_expression.nets = nets;
+        polish_expression
+    }
+
+    // first all module ids than HVHVHVH
+    pub fn set_solution_operator_top(&mut self) {
+        let n = self.modules.len();
         let operators_it = (0..n).map(|x| ModuleNode::Module(x));
         let operand_it = [ModuleNode::H(), ModuleNode::V()].into_iter().cycle().take(n - 1);
         let solution: Vec<ModuleNode> = operators_it.chain(operand_it).collect();
-        // -> put into test?
-        let current_cost = PolishExpression::eval(&solution, &modules);
-        let num_operators: Vec<usize> = PolishExpression::get_num_operator(&solution);
-        PolishExpression {solution, modules, current_cost, num_operators}
+        self.set_solution(solution);
     }
 
     pub fn set_solution(&mut self, solution: Vec<ModuleNode>) {
         self.solution = solution;
-        self.current_cost = PolishExpression::eval(&self.solution, &self.modules);
-        self.num_operators = PolishExpression::get_num_operator(&self.solution);
+        self.tree = self.get_slicing_tree();
+        self.current_cost = self.tree.get_min_area() as f64;
+        self.num_operators = self.get_num_operator();
     }   
 
-    pub fn eval(solution: &Vec<ModuleNode>, modules: &Vec<Rectangle>,
-    ) -> f64{
-        let mut stack: Vec<ShapeFunction> = Vec::new();
-        for module_node in solution {
+    fn get_slicing_tree(&self) -> SlicingTree {
+        let nodes = vec![SlicingTreeNode::default(); self.solution.len()];
+        let mut tree = SlicingTree{root: 0, nodes: nodes};
+        let mut stack: Vec<(ShapeFunction, usize)> = Vec::new();
+        let mut index = 0;
+        for module_node in self.solution.iter() {
             match *module_node {
                 ModuleNode::Module(id) => {
-                    let module: Rectangle = modules[id];
-                    let mut sf = ShapeFunction::from_iter([module]);
-                    // TODO check if better to add twice before  
-                    // each rectangle is rotable by default, maybe change later
-                    if module.width != module.heigth {
-                        sf.add(module.transpose());  
-                    }
-                    stack.push(sf);
+                    let module: Rectangle = self.modules[id];
+                    let sf = ShapeFunction::from_iter([module, module.transpose()]);
+                    stack.push((sf, index));
+                    index += 1;
                 }
                 _ => {
-                    let a: ShapeFunction = stack.pop().unwrap();
-                    let b: ShapeFunction = stack.pop().unwrap();
-                    let combined: ShapeFunction = ShapeFunction::combine(&a, &b, *module_node);
-                    stack.push(combined);
+                    let (sf1, left) = stack.pop().unwrap();
+                    let (sf2, right) = stack.pop().unwrap();
+                    let combined: ShapeFunction = ShapeFunction::combine(&sf1, &sf2, *module_node);
+                    stack.push((combined, index));
+                    tree.nodes[left].shape = sf1;
+                    tree.nodes[right].shape = sf2;
+                    tree.nodes[index].left = left;
+                    tree.nodes[index].right = right;
+                    index += 1;
                 }
             }
         }
-        let last: ShapeFunction = stack.pop().unwrap();
-        debug_assert!(last.points.len() > 0);
-        let min_area_index = last.points
-            .iter()
-            .enumerate()
-            .max_by(|(_, &a), (_, &b)| a.area().partial_cmp(&b.area()).unwrap_or(Ordering::Equal))
-            .map(|(index, _)| index)
-            .unwrap();
-        last.points[min_area_index].area() as f64
+        let (sf, root) = stack.pop().unwrap();
+        debug_assert!(sf.points.len() > 0);
+        tree.root = root;
+        tree.nodes[root].shape = sf;
+        tree
     }
 
-    fn get_num_operator(solution: &Vec<ModuleNode>) -> Vec<usize> {
-        solution.iter()
+    fn get_num_operator(&self) -> Vec<usize> {
+        self.solution.iter()
         .scan(0, |sum, m| {
                 let is_operator = if m.is_module() {0} else {1};
                 *sum += is_operator; 
@@ -112,7 +137,8 @@ impl PolishExpression {
     }
 
     pub fn eval_expression(&self) -> f64 {
-        PolishExpression::eval(&self.solution, &self.modules)
+        let tree = self.get_slicing_tree();
+        tree.get_min_area() as f64
     }
 
     fn get_swap_operands(&self) -> PEMoveType {
@@ -120,9 +146,11 @@ impl PolishExpression {
         let m = self.solution.len();
         loop {
             let a = rng.gen_range(0..m);
-            for b in a+1..self.solution.len() {
-                if self.solution[a].is_module() && self.solution[b].is_module() {
-                    return PEMoveType::SwapOperands(a, b);
+            if self.solution[a].is_module() {
+                for b in a+1..self.solution.len() {
+                    if  self.solution[b].is_module() {
+                        return PEMoveType::SwapOperands(a, b);
+                    }
                 }
             }
         }
@@ -145,28 +173,30 @@ impl PolishExpression {
     fn swap_operand_operator(&self) -> PEMoveType {
         let mut rng: ThreadRng = rand::thread_rng();
         let m = self.solution.len();
-        loop {
-            let a = rng.gen_range(0..m-1);
-            // one operand and one operator
+        let mut pos: Vec<usize> = Vec::new();
+        // one operand and one operator
+        for a in  0..m - 1 {
             if self.solution[a].is_module() ^ self.solution[a + 1].is_module() && 2 * self.num_operators[a + 1] <= a  {
-                return PEMoveType::SwapOperandOperator(a, a + 1);
+                pos.push(a);
             }
-        }   
+        }
+        let i = rng.gen_range(0..pos.len());
+        PEMoveType::SwapOperandOperator(pos[i], pos[i] + 1)
+        
     }
 }
 
 impl SAInstance<PolishExpressionMove, Vec<ModuleNode>> for PolishExpression {
     fn get_move(&mut self) -> PolishExpressionMove {
         let mut rng: ThreadRng = rand::thread_rng();
-        // let r: u64 = rng.gen_range(0..3);
-        let r = 2;
+        let r: u64 = rng.gen_range(0..3);
         let move_type: PEMoveType = 
         match r {
             0 => self.get_swap_operands(),
             1 => self.get_invert_chain(),
             2 => {
                 // make sure prefix array is updated
-                self.num_operators = PolishExpression::get_num_operator(&self.solution);
+                self.num_operators = self.get_num_operator();
                 self.swap_operand_operator()
             },
             _ => panic!("only 3 options"),
@@ -183,8 +213,7 @@ impl SAInstance<PolishExpressionMove, Vec<ModuleNode>> for PolishExpression {
         let move_type: PEMoveType = _move.move_type;
         self.current_cost += _move.delta_cost;
         move_type.apply(&mut self.solution);
-        // TODO more efficient
-        self.num_operators = PolishExpression::get_num_operator(&self.solution);
+        self.num_operators = self.get_num_operator();
     }
 
     fn current_cost(&self) -> f64 {
