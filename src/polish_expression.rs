@@ -135,10 +135,19 @@ impl PolishExpression {
         self.set_solution(solution);
     }
 
+    pub fn set_solution_all_vertical(&mut self) {
+        let mut solution: Vec<ModuleNode> = vec![ModuleNode::Module(0)];
+        for i in 1..self.modules.len() {
+            solution.push(ModuleNode::Module(i));
+            solution.push(ModuleNode::V());
+        }
+        self.set_solution(solution);
+    }
+
     pub fn set_solution(&mut self, solution: Vec<ModuleNode>) {
         self.solution = solution;
         self.tree = self.get_slicing_tree();
-        self.current_cost = self.tree.get_min_area() as f64;
+        self.current_cost = self.eval_expression();
         self.num_operators = self.get_num_operator();
     }   
 
@@ -208,7 +217,11 @@ impl PolishExpression {
 
     pub fn eval_expression(&self) -> f64 {
         let tree = self.get_slicing_tree();
-        tree.get_min_area() as f64
+        let rect = tree.get_bounding_box();
+        // punish rectangles that are far from a square just for testing packing
+        let cost =  rect.area() + rect.width * rect.width + rect.heigth * rect.heigth;
+        cost as f64
+        // tree.get_min_area() as f64
     }
 
     fn get_swap_adjacent_operands(&self) -> PEMoveType {
@@ -252,7 +265,7 @@ impl PolishExpression {
         PEMoveType::InvertChain(pos[a])
     }
 
-    fn swap_operand_operator(&self) -> PEMoveType {
+    fn swap_operand_operator(&self) -> Option<PEMoveType> {
         let mut rng: ThreadRng = rand::thread_rng();
         let m = self.solution.len();
         let mut pos: Vec<usize> = Vec::new();
@@ -284,9 +297,14 @@ impl PolishExpression {
                 }
             }
         }
-        debug_assert!(pos.len() > 0);
-        let i = rng.gen_range(0..pos.len());
-        PEMoveType::SwapOperandOperator(pos[i], pos[i] + 1)
+        if pos.len() > 0 {
+            let i = rng.gen_range(0..pos.len());
+            Some(PEMoveType::SwapOperandOperator(pos[i], pos[i] + 1))
+        } 
+        else {
+            None
+        }
+            
         
     }
 }
@@ -295,17 +313,15 @@ impl SAInstance<PolishExpressionMove, Vec<ModuleNode>> for PolishExpression {
     fn get_move(&mut self) -> PolishExpressionMove {
         let mut rng: ThreadRng = rand::thread_rng();
         let r: u64 = rng.gen_range(0..3);
-        // let r: u64 = rng.gen_range(0..6);
-        let r: u64 = 3;
         let move_type: PEMoveType = 
         match r {
             0 => self.get_swap_adjacent_operands(),
-            // 0 => self.get_swap_operands(),
             1 => self.get_invert_chain(),
             _ => {
                 // make sure prefix array is updated
                 self.num_operators = self.get_num_operator();
-                self.swap_operand_operator()
+                // can fail if there is no possible swap
+                self.swap_operand_operator().unwrap_or(self.get_swap_adjacent_operands())
             },
         };
         let old: f64 = self.eval_expression();

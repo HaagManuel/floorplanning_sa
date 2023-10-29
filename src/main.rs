@@ -26,10 +26,12 @@ fn main() {
     let(blocks, nets) = parse_file("benchmark/n30.floor").unwrap();
     // let(blocks, nets) = parse_file("benchmark/n300.floor").unwrap();
     let mut p: PolishExpression = PolishExpression::new(blocks, nets);
-    p.set_solution_operator_top();
+    // p.set_solution_operator_top();
+    p.set_solution_all_vertical();
     let initial_prob = 0.95;
     let num_moves = 100;
     let initial_temperature = SimulatedAnnealing::estimate_initial_temperature(initial_prob, num_moves, &mut p);
+    // let initial_temperature = 100_000.0;
     let iterations = 10_000;
     let decay = 0.999;
     println!("T: {}", initial_temperature);
