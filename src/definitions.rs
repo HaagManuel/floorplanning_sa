@@ -16,7 +16,7 @@ pub enum ModuleNode {
 
 impl Default for ModuleNode {
     fn default() -> Self {
-        ModuleNode::Module((0))
+        ModuleNode::Module(0)
     }
 }
 

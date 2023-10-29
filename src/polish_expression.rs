@@ -6,8 +6,6 @@ use crate::definitions::*;
 use rand::prelude::*;
 
 pub type Floorplan = Vec<(usize, usize, Rectangle, ModuleNode)>;
-
-
 #[derive(Default)]
 pub struct PolishExpression {
     solution: Vec<ModuleNode>,
