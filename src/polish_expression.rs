@@ -207,7 +207,7 @@ impl PolishExpression {
         tree.get_min_area() as f64
     }
 
-    fn get_swap_operands(&self) -> PEMoveType {
+    fn get_swap_adjacent_operands(&self) -> PEMoveType {
         let mut rng: ThreadRng = rand::thread_rng();
         let m = self.solution.len();
         loop {
@@ -218,6 +218,18 @@ impl PolishExpression {
                         return PEMoveType::SwapOperands(a, b);
                     }
                 }
+            }
+        }
+    }
+
+    fn get_swap_operands(&self) -> PEMoveType {
+        let mut rng: ThreadRng = rand::thread_rng();
+        let m = self.solution.len();
+        loop {
+            let a = rng.gen_range(0..m);
+            let b = rng.gen_range(0..m);
+            if self.solution[a].is_module() && self.solution[b].is_module() && a != b {
+                    return PEMoveType::SwapOperands(a, b);
             }
         }
     }
@@ -240,12 +252,35 @@ impl PolishExpression {
         let mut rng: ThreadRng = rand::thread_rng();
         let m = self.solution.len();
         let mut pos: Vec<usize> = Vec::new();
-        // one operand and one operator
-        for a in  0..m - 1 {
-            if self.solution[a].is_module() ^ self.solution[a + 1].is_module() && 2 * self.num_operators[a + 1] <= a  {
-                pos.push(a);
+        // operator can not be at position 0 or 1
+        for a in  1..m - 1 {
+            let l = self.solution[a];
+            let r = self.solution[a + 1];
+            // check parentheses property because we move operator to the left
+            if l.is_module() && !r.is_module() && 2 * self.num_operators[a] < a - 1{
+                // previous node always exist because of parentheses property
+                // no VV or HH
+                let ll  = self.solution[a - 1];
+                if r != ll {
+                    pos.push(a);
+                }
+            }
+            // operator is moved to the right --> parentheses property can not be violated
+            else if !l.is_module() && r.is_module() {
+                // no right neighbor that could be cause VV or HH
+                if a + 2 >= m {
+                    pos.push(a);
+                }
+                else {
+                    // no VV or HH
+                    let rr = self.solution[a + 2];
+                    if l != rr {
+                        pos.push(a);
+                    }
+                }
             }
         }
+        debug_assert!(pos.len() > 0);
         let i = rng.gen_range(0..pos.len());
         PEMoveType::SwapOperandOperator(pos[i], pos[i] + 1)
         
@@ -255,11 +290,12 @@ impl PolishExpression {
 impl SAInstance<PolishExpressionMove, Vec<ModuleNode>> for PolishExpression {
     fn get_move(&mut self) -> PolishExpressionMove {
         let mut rng: ThreadRng = rand::thread_rng();
-        // let r: u64 = rng.gen_range(0..3);
-        let r: u64 = rng.gen_range(0..5);
+        let r: u64 = rng.gen_range(0..3);
+        // let r: u64 = rng.gen_range(0..5);
+        let r: u64 = 3;
         let move_type: PEMoveType = 
         match r {
-            0 => self.get_swap_operands(),
+            0 => self.get_swap_adjacent_operands(),
             1 => self.get_invert_chain(),
             _ => {
                 // make sure prefix array is updated

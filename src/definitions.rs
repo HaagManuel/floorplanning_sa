@@ -7,7 +7,7 @@ pub struct Rectangle {
     pub heigth: Int,
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum ModuleNode {
     H(),
     V(),
