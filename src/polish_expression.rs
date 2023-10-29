@@ -145,36 +145,36 @@ impl PolishExpression {
     fn get_slicing_tree(&self) -> SlicingTree {
         let nodes = vec![SlicingTreeNode::default(); self.solution.len()];
         let mut tree = SlicingTree{root: 0, nodes: nodes};
-        let mut stack: Vec<(ShapeFunction, usize)> = Vec::new();
+        let mut stack: Vec<usize> = Vec::new();
         let mut index = 0;
         for module_node in self.solution.iter() {
             match *module_node {
                 ModuleNode::Module(id) => {
                     let module: Rectangle = self.modules[id];
                     let sf = ShapeFunction::from_iter([module, module.transpose()]);
-                    stack.push((sf, index));
+                    stack.push(index);
                     tree.nodes[index].module_type = *module_node;
+                    tree.nodes[index].shape = sf;
                     index += 1;
                 }
                 _ => {
-                    let (sf1, left) = stack.pop().unwrap();
-                    let (sf2, right) = stack.pop().unwrap();
-                    let combined: ShapeFunction = ShapeFunction::combine(&sf1, &sf2, *module_node);
-                    stack.push((combined, index));
-                    tree.nodes[left].shape = sf1;
-                    tree.nodes[right].shape = sf2;
+                    let right = stack.pop().unwrap();
+                    let left = stack.pop().unwrap();
+                    let sf1: &ShapeFunction = &tree.nodes[left].shape;
+                    let sf2: &ShapeFunction = &tree.nodes[right].shape;
+                    let combined: ShapeFunction = ShapeFunction::combine(sf1, sf2, *module_node);
                     tree.nodes[index].left = left;
                     tree.nodes[index].right = right;
                     tree.nodes[index].module_type = *module_node;
-
+                    tree.nodes[index].shape = combined;
+                    stack.push(index);
                     index += 1;
                 }
             }
         }
-        let (sf, root) = stack.pop().unwrap();
-        debug_assert!(sf.points.len() > 0);
+        let root = stack.pop().unwrap();
+        debug_assert!(tree.nodes[root].shape.points.len() > 0);
         tree.root = root;
-        tree.nodes[root].shape = sf;
         tree
     }
 
@@ -182,12 +182,16 @@ impl PolishExpression {
         self.get_slicing_tree().get_floorplan()
     }
 
+    pub fn get_total_area(&self) -> Int {
+        self.get_slicing_tree().get_min_area()
+    }
+
     pub fn get_dead_area(&self) -> f64 {
         let occupied_area: usize = self.modules
             .iter()
             .map(|rect| rect.area())
             .sum();
-        let total_area = self.get_slicing_tree().get_min_area();
+        let total_area = self.get_total_area();
         1.0 - (occupied_area as f64 / total_area as f64)
     }
 
@@ -291,11 +295,12 @@ impl SAInstance<PolishExpressionMove, Vec<ModuleNode>> for PolishExpression {
     fn get_move(&mut self) -> PolishExpressionMove {
         let mut rng: ThreadRng = rand::thread_rng();
         let r: u64 = rng.gen_range(0..3);
-        // let r: u64 = rng.gen_range(0..5);
+        // let r: u64 = rng.gen_range(0..6);
         let r: u64 = 3;
         let move_type: PEMoveType = 
         match r {
             0 => self.get_swap_adjacent_operands(),
+            // 0 => self.get_swap_operands(),
             1 => self.get_invert_chain(),
             _ => {
                 // make sure prefix array is updated

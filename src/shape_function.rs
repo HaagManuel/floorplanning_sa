@@ -41,7 +41,6 @@ impl ShapeFunction {
     }
 
     pub fn reconstruct(a: &ShapeFunction, b: &ShapeFunction, v_or_h: ModuleNode, rect: &Rectangle) -> Option<(Rectangle, Rectangle)> {
-        let mut sf: ShapeFunction = ShapeFunction::default();
         for i in 0..a.points.len() {
             for j in 0..b.points.len() {
                 let r1 = a.points[i];
