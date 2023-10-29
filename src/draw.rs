@@ -46,8 +46,10 @@ pub fn draw_floorplan(plan: &Floorplan, file: &str) {
     canvas.display_list.add(background);
     
     // add rectangles
-    for (x, y, rect, _) in plan {
-        let rect = create_rectangle(*x as f32 , *y as f32, rect.width as u32, rect.heigth as u32, RECT_COLOR);      
+    for (x, y, module_rect, _) in plan {
+        let mut rect = create_rectangle(*x as f32 , *y as f32, module_rect.width as u32, module_rect.heigth as u32, RECT_COLOR);      
+        // shift origin from upper left to lower left
+        rect.position.y = canvas_height as f32 - rect.position.y - module_rect.heigth as f32;
         canvas.display_list.add(rect);
     }
 
