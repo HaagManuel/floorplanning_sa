@@ -7,6 +7,13 @@ pub struct Rectangle {
     pub heigth: Int,
 }
 
+pub struct BoundingBox {
+    pub min_x: f64,
+    pub max_x: f64,
+    pub min_y: f64,
+    pub max_y: f64,
+}
+
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum ModuleNode {
     H(),
@@ -59,6 +66,27 @@ impl Rectangle {
 
     pub fn area(&self) -> Int {
         self.width * self.heigth
+    }
+}
+
+impl BoundingBox {
+    pub fn new(min_x: f64, max_x: f64, min_y: f64, max_y: f64) -> Self {
+        BoundingBox { min_x, max_x, min_y, max_y }
+    }
+
+    pub fn extend_point(&mut self, x: f64, y: f64) {
+        self.min_x = self.min_x.min(x);
+        self.max_x = self.max_x.max(x);
+        self.min_y = self.min_y.min(y);
+        self.max_y = self.max_y.max(y);
+    } 
+
+    pub fn get_width(&self) -> f64 {
+        self.max_x - self.min_x
+    }
+
+    pub fn get_height(&self) -> f64 {
+        self.max_y - self.min_y
     }
 }
 

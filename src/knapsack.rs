@@ -56,6 +56,10 @@ impl SAInstance<KnapsackMove, Vec<bool>> for Knapsack {
     fn copy_solution(&self) -> Vec<bool> {
         self.selected_items.clone()
     }
+
+    fn set_solution(&mut self, solution: Vec<bool>) {
+        self.selected_items = solution;
+    }
 }
 
 impl SAMove for KnapsackMove {

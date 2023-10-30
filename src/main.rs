@@ -13,8 +13,8 @@ use crate::simulated_annealing::SimulatedAnnealing;
 // use crate::knapsack::Knapsack;
 // use crate::shape_function::ShapeFunction;
 use crate::polish_expression::*;
-use crate::definitions::*;
-use crate::instance_generator::*;
+// use crate::definitions::*;
+// use crate::instance_generator::*;
 use crate::parser::*;
 use crate::draw::*;
 
@@ -25,20 +25,22 @@ fn main() {
     // let(mut blocks, nets) = parse_file("benchmark/n10.floor").unwrap();
     let(mut blocks, nets) = parse_file("benchmark/n30.floor").unwrap();
     // let(mut blocks, nets) = parse_file("benchmark/n300.floor").unwrap();
-    
+    let num_blocks = blocks.len();
     blocks.sort_by_key(|rect| rect.width.max(rect.heigth));
+    
+    // let alpha: f64 = 1.0;
+    let alpha: f64 = 0.5;
     // blocks.sort_by_key(|rect| ((rect.width.max(rect.heigth) as f64 / rect.width.min(rect.heigth) as f64) * 1000.0) as u32);
-
-    let mut p: PolishExpression = PolishExpression::new(blocks, nets);
+    let mut p: PolishExpression = PolishExpression::new(blocks, nets, alpha);
     // p.set_solution_operator_top();
     p.set_solution_all_vertical();
-
+    
+    let num_moves: usize = 3 * num_blocks;
     let initial_prob = 0.95;
-    let num_moves = 1000;
     let initial_temperature = SimulatedAnnealing::estimate_initial_temperature(initial_prob, num_moves, &mut p);
-
-    let iterations = 1000_000;
-    let decay = SimulatedAnnealing::get_decay_for_n_iterations(iterations, initial_temperature);;
+    
+    let iterations = 100_000;
+    let decay = SimulatedAnnealing::get_decay_for_n_iterations(iterations, initial_temperature);
     println!("T: {}, it: {}, decay: {}", initial_temperature, iterations, decay);
     
     let plan_before = p.get_floorplan();

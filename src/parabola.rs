@@ -50,6 +50,10 @@ impl SAInstance<ParabolaMove, f64> for Parabola {
     fn copy_solution(&self) -> f64 {
         self.x_current
     }
+
+    fn set_solution(&mut self, solution: f64) {
+        self.x_current = solution;
+    }
 }
 
 impl SAMove for ParabolaMove {

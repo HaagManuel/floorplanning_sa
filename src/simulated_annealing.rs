@@ -2,7 +2,8 @@ use std::fmt::Debug;
 
 use rand::prelude::*;
 
-const TEMPERATURE_THRESHOLD: f64 = 0.01;
+// stop if T < T_init * threshold
+const TEMPERATURE_THRESHOLD: f64 = 0.000_001;
 
 pub trait SAMove {
     fn get_delta_cost(&self) -> f64;
@@ -14,6 +15,7 @@ pub trait SAInstance<Move: SAMove, Solution> {
     fn apply_move(&mut self, _move: Move);
     fn current_cost(&self) -> f64;
     fn copy_solution(&self) -> Solution;
+    fn set_solution(&mut self, solution: Solution);
 }
 
 pub struct SimulatedAnnealing {
@@ -28,7 +30,7 @@ impl SimulatedAnnealing {
     // average positive costs
     // p is probability that an inital move is accepted
     pub fn estimate_initial_temperature<T: SAInstance<Move, Solution>, Move: SAMove + Debug, Solution: Debug>(initial_prob: f64, num_moves: usize, instance: &mut T) -> f64 {
-        let mut sum = 0.0;
+        let mut sum: f64 = 0.0;
         for _ in 0..num_moves {
             let _move = instance.get_move();
             sum += _move.get_delta_cost().abs(); 
@@ -41,7 +43,8 @@ impl SimulatedAnnealing {
 
     // T * alpha^n < x --> alpha < (x / T)^(1/n)
     pub fn get_decay_for_n_iterations(iterations: u64, initial_temperature: f64) -> f64 {
-        (TEMPERATURE_THRESHOLD / initial_temperature).powf(1.0 / iterations as f64)
+        let temperature_stop = initial_temperature * TEMPERATURE_THRESHOLD;
+        (temperature_stop / initial_temperature).powf(1.0 / iterations as f64)
     }
 
     pub fn new(iterations: u64, initial_temperature: f64, decay: f64) -> SimulatedAnnealing {
@@ -58,7 +61,7 @@ impl SimulatedAnnealing {
         let mut best_cost: f64 = instance.current_cost();
         let mut best_solution: Solution = instance.copy_solution();
         for i in 0..self.iterations {
-            if temperature < TEMPERATURE_THRESHOLD {
+            if temperature < TEMPERATURE_THRESHOLD * self.initial_temperature {
                 break;
             }
             let _move: Move = instance.get_move();
@@ -86,5 +89,6 @@ impl SimulatedAnnealing {
         }
         println!("best cost {:?}", best_cost);
         println!("best solution {:?}", best_solution);
+        instance.set_solution(best_solution);
     }
 }

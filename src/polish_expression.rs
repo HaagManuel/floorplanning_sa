@@ -14,6 +14,9 @@ pub struct PolishExpression {
     tree: SlicingTree,
     num_operators: Vec<usize>, // to check if op3 is legal
     current_cost: f64,
+    avg_wirelength: f64,
+    avg_area: f64,
+    alpha: f64, // between 0 and 1, -> 1 area more important, -> 0 wirelength more important
 }
 
 #[derive(Debug)]
@@ -119,10 +122,11 @@ impl SlicingTree {
 }
 
 impl PolishExpression {
-    pub fn new(modules: Vec<Rectangle>, nets: Vec<Net>) -> Self {
+    pub fn new(modules: Vec<Rectangle>, nets: Vec<Net>, alpha: f64) -> Self {
         let mut polish_expression = PolishExpression::default();
         polish_expression.modules = modules;
         polish_expression.nets = nets;
+        polish_expression.alpha = alpha;
         polish_expression
     }
 
@@ -146,7 +150,9 @@ impl PolishExpression {
 
     pub fn set_solution(&mut self, solution: Vec<ModuleNode>) {
         self.solution = solution;
-        self.tree = self.get_slicing_tree();
+        let (avg_area, avg_wire) = self.get_avg_wirelenth_avg_area(3 * self.solution.len());
+        self.avg_area = avg_area;
+        self.avg_wirelength = avg_wire;
         self.current_cost = self.eval_expression();
         self.num_operators = self.get_num_operator();
     }   
@@ -215,13 +221,40 @@ impl PolishExpression {
         .collect()
     }
 
-    pub fn eval_expression(&self) -> f64 {
+
+    fn get_wirelength(&self, plan: &Floorplan) -> f64{
+        let mut total_wirelength: f64 = 0.0;
+        for net in self.nets.iter() {
+            let mut bounding_box = BoundingBox::new(f64::MAX, -f64::MAX, f64::MAX, -f64::MAX);
+            for id in net.pins.iter() {
+                let (pos_x, pos_y, rect, _) = plan[*id];
+                let center_x = pos_x as f64 + (rect.width as f64 / 2.0);
+                let center_y = pos_y as f64 + (rect.heigth as f64 / 2.0);
+                bounding_box.extend_point(center_x, center_y);
+            }
+            // half perimeter estimation
+            total_wirelength += bounding_box.get_width() + bounding_box.get_height();
+        }
+        total_wirelength
+    }
+
+    fn eval_area_wirelength(&self) -> (f64, f64) {
         let tree = self.get_slicing_tree();
-        let rect = tree.get_bounding_box();
+        let plan = tree.get_floorplan();
+        let area = tree.get_bounding_box().area() as f64;
+        let wirelength = self.get_wirelength(&plan);
+        (area, wirelength)
+    }
+
+    pub fn eval_expression(&self) -> f64 {
+        let (area, wirelength) = self.eval_area_wirelength();
+        let area_cost = area / self.avg_area;
+        let wire_cost = wirelength / self.avg_wirelength;
+        let cost = area_cost * self.alpha + wire_cost * (1.0 - self.alpha);
+        cost
         // punish rectangles that are far from a square just for testing packing
-        let cost =  rect.area() + rect.width * rect.width + rect.heigth * rect.heigth;
-        cost as f64
-        // tree.get_min_area() as f64
+        // let cost =  rect.area() + rect.width * rect.width + rect.heigth * rect.heigth;
+        // cost as f64
     }
 
     fn get_swap_adjacent_operands(&self) -> PEMoveType {
@@ -304,13 +337,24 @@ impl PolishExpression {
         else {
             None
         }
-            
-        
     }
-}
 
-impl SAInstance<PolishExpressionMove, Vec<ModuleNode>> for PolishExpression {
-    fn get_move(&mut self) -> PolishExpressionMove {
+    fn get_avg_wirelenth_avg_area(&mut self, repetitions: usize) -> (f64, f64) {
+        let mut sum_area = 0.0;
+        let mut sum_wirelength = 0.0;
+        for _ in 0..repetitions {
+            let _move = self.get_random_move();
+            _move.apply(&mut self.solution);
+            let (area, wire) = self.eval_area_wirelength();
+            _move.apply(&mut self.solution);
+            sum_area += area;
+            sum_wirelength += wire;
+            
+        }
+        (sum_area / repetitions as f64, sum_wirelength / repetitions as f64)
+    }
+
+    fn get_random_move(&mut self) -> PEMoveType {
         let mut rng: ThreadRng = rand::thread_rng();
         let r: u64 = rng.gen_range(0..3);
         let move_type: PEMoveType = 
@@ -323,7 +367,15 @@ impl SAInstance<PolishExpressionMove, Vec<ModuleNode>> for PolishExpression {
                 // can fail if there is no possible swap
                 self.swap_operand_operator().unwrap_or(self.get_swap_adjacent_operands())
             },
-        };
+        };   
+        move_type
+    }
+
+}
+
+impl SAInstance<PolishExpressionMove, Vec<ModuleNode>> for PolishExpression {
+    fn get_move(&mut self) -> PolishExpressionMove {
+        let move_type: PEMoveType = self.get_random_move();
         let old: f64 = self.eval_expression();
         move_type.apply(&mut self.solution);
         let new: f64 = self.eval_expression();
@@ -336,7 +388,6 @@ impl SAInstance<PolishExpressionMove, Vec<ModuleNode>> for PolishExpression {
         let move_type: PEMoveType = _move.move_type;
         self.current_cost += _move.delta_cost;
         move_type.apply(&mut self.solution);
-        self.num_operators = self.get_num_operator();
     }
 
     fn current_cost(&self) -> f64 {
@@ -346,6 +397,11 @@ impl SAInstance<PolishExpressionMove, Vec<ModuleNode>> for PolishExpression {
     fn copy_solution(&self) -> Vec<ModuleNode> {
         self.solution.clone()
     }
+
+    fn set_solution(&mut self, solution: Vec<ModuleNode>) {
+        self.set_solution(solution)
+    }
+
 }
 
 impl SAMove for PolishExpressionMove {
