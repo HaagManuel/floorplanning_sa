@@ -8,6 +8,7 @@ mod instance_generator;
 mod parser;
 mod draw;
 mod slicing_tree;
+mod sequence_pair;
 
 use crate::simulated_annealing::SimulatedAnnealing;
 // use crate::parabola::Parabola;
@@ -24,8 +25,8 @@ fn main() {
     println!("Hello, SA!");
     
     // let(mut blocks, nets) = parse_file("benchmark/n10.floor").unwrap();
-    let(mut blocks, nets) = parse_file("benchmark/n30.floor").unwrap();
-    // let(mut blocks, nets) = parse_file("benchmark/n300.floor").unwrap();
+    // let(mut blocks, nets) = parse_file("benchmark/n30.floor").unwrap();
+    let(mut blocks, nets) = parse_file("benchmark/n300.floor").unwrap();
     let net_list = nets.clone();
     let num_blocks = blocks.len();
     blocks.sort_by_key(|rect| rect.width.max(rect.heigth));

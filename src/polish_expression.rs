@@ -8,6 +8,7 @@ pub struct PolishExpression {
     modules: Vec<Rectangle>,
     nets: Vec<Net>,
     num_operators: Vec<usize>, // to check if op3 is legal
+    tree: SlicingTree,
     current_cost: f64,
     avg_wirelength: f64,
     avg_area: f64,
@@ -48,10 +49,12 @@ pub struct PolishExpressionMove {
 
 impl PolishExpression {
     pub fn new(modules: Vec<Rectangle>, nets: Vec<Net>, alpha: f64) -> Self {
+        let n = modules.len();
         let mut polish_expression = PolishExpression::default();
         polish_expression.modules = modules;
         polish_expression.nets = nets;
         polish_expression.alpha = alpha;
+        polish_expression.tree = SlicingTree::new(n);
         polish_expression
     }
 
@@ -82,17 +85,20 @@ impl PolishExpression {
         self.num_operators = self.get_num_operator();
     }   
 
-    pub fn get_floorplan(&self) -> Floorplan {
-        let tree = SlicingTree::get_slicing_tree(&self.solution, &self.modules);
-        tree.get_floorplan()
+    // clones floorplan
+    pub fn get_floorplan(&mut self) -> Floorplan {
+        self.tree.recompute(&self.solution, &self.modules);
+        self.tree.recompute_floorplan();
+        self.tree.placement.clone()
     }
 
-    pub fn get_total_area(&self) -> Int {
-        let tree = SlicingTree::get_slicing_tree(&self.solution, &self.modules);
-        tree.get_min_area()
+    pub fn get_total_area(&mut self) -> Int {
+        self.tree.recompute(&self.solution, &self.modules);
+        self.tree.get_min_area()
     }
 
-    pub fn get_dead_area(&self) -> f64 {
+    // pub fn get_dead_area(&self) -> f64 {
+    pub fn get_dead_area(&mut self) -> f64 {
         let occupied_area: usize = self.modules
             .iter()
             .map(|rect| rect.area())
@@ -127,15 +133,15 @@ impl PolishExpression {
         total_wirelength
     }
 
-    fn eval_area_wirelength(&self) -> (f64, f64) {
-        let tree = SlicingTree::get_slicing_tree(&self.solution, &self.modules);
-        let plan = tree.get_floorplan();
-        let area = tree.get_bounding_box().area() as f64;
-        let wirelength = self.get_wirelength(&plan);
+    fn eval_area_wirelength(&mut self) -> (f64, f64) {
+        self.tree.recompute(&self.solution, &self.modules);
+        self.tree.recompute_floorplan();
+        let area = self.tree.get_bounding_box().area() as f64;
+        let wirelength = self.get_wirelength(&self.tree.placement);
         (area, wirelength)
     }
 
-    pub fn eval_expression(&self) -> f64 {
+    pub fn eval_expression(&mut self) -> f64 {
         let (area, wirelength) = self.eval_area_wirelength();
         let area_cost = area / self.avg_area;
         let wire_cost = wirelength / self.avg_wirelength;
