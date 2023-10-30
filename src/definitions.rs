@@ -28,7 +28,7 @@ impl Default for ModuleNode {
 }
 
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Default)]
 pub struct Net {
     pub pins: Vec<usize>,
 }
@@ -66,6 +66,13 @@ impl Rectangle {
 
     pub fn area(&self) -> Int {
         self.width * self.heigth
+    }
+    
+    // assumes position is at bottom left corner
+    pub fn center(&self, pos_x: Int, pos_y: Int) -> (f64, f64) {
+        let center_x = pos_x as f64 + (self.width as f64 / 2.0);
+        let center_y = pos_y as f64 + (self.heigth as f64 / 2.0);
+        (center_x, center_y)
     }
 }
 

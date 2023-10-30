@@ -25,12 +25,11 @@ fn main() {
     // let(mut blocks, nets) = parse_file("benchmark/n10.floor").unwrap();
     let(mut blocks, nets) = parse_file("benchmark/n30.floor").unwrap();
     // let(mut blocks, nets) = parse_file("benchmark/n300.floor").unwrap();
+    let net_list = nets.clone();
     let num_blocks = blocks.len();
     blocks.sort_by_key(|rect| rect.width.max(rect.heigth));
     
-    // let alpha: f64 = 1.0;
     let alpha: f64 = 0.5;
-    // blocks.sort_by_key(|rect| ((rect.width.max(rect.heigth) as f64 / rect.width.min(rect.heigth) as f64) * 1000.0) as u32);
     let mut p: PolishExpression = PolishExpression::new(blocks, nets, alpha);
     // p.set_solution_operator_top();
     p.set_solution_all_vertical();
@@ -44,17 +43,21 @@ fn main() {
     println!("T: {}, it: {}, decay: {}", initial_temperature, iterations, decay);
     
     let plan_before = p.get_floorplan();
-    let before = p.get_dead_area() * 100.0;
-    
+    let dead_area_before = p.get_dead_area() * 100.0;
+    let wire_before = p.get_wirelength(&plan_before);
     let sa: SimulatedAnnealing = SimulatedAnnealing::new(iterations, initial_temperature, decay);
     sa.run(&mut p);
     
     let plan_after = p.get_floorplan();
-    let after = p.get_dead_area() * 100.0;
-    println!("dead area before {:?}, after {:?}%", before, after);
+    let dead_area_after = p.get_dead_area() * 100.0;
+    let wire_after = p.get_wirelength(&plan_after);
+    let wire_reduction = (wire_after / wire_before) * 100.0;
+    println!("dead area before {:.2?}, after {:.2?}%", dead_area_before, dead_area_after);
+    println!("{:.2?}% of wirelength before", wire_reduction);
     
     let svg_image1 = "plan_before.svg";
     let svg_image2 = "plan_after.svg";
-    draw_floorplan(&plan_before, svg_image1);
-    draw_floorplan(&plan_after, svg_image2);
+    let draw_nets = true;
+    draw_floorplan(&plan_before, svg_image1, &net_list, draw_nets);
+    draw_floorplan(&plan_after, svg_image2, &net_list, draw_nets);
 }

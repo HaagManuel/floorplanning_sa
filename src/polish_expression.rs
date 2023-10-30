@@ -222,14 +222,13 @@ impl PolishExpression {
     }
 
 
-    fn get_wirelength(&self, plan: &Floorplan) -> f64{
+    pub fn get_wirelength(&self, plan: &Floorplan) -> f64{
         let mut total_wirelength: f64 = 0.0;
         for net in self.nets.iter() {
             let mut bounding_box = BoundingBox::new(f64::MAX, -f64::MAX, f64::MAX, -f64::MAX);
             for id in net.pins.iter() {
                 let (pos_x, pos_y, rect, _) = plan[*id];
-                let center_x = pos_x as f64 + (rect.width as f64 / 2.0);
-                let center_y = pos_y as f64 + (rect.heigth as f64 / 2.0);
+                let (center_x, center_y) = rect.center(pos_x, pos_y);
                 bounding_box.extend_point(center_x, center_y);
             }
             // half perimeter estimation
