@@ -2,6 +2,8 @@ use std::fmt::Debug;
 
 use rand::prelude::*;
 
+const TEMPERATURE_THRESHOLD: f64 = 0.01;
+
 pub trait SAMove {
     fn get_delta_cost(&self) -> f64;
 }
@@ -37,6 +39,11 @@ impl SimulatedAnnealing {
         temperature
     } 
 
+    // T * alpha^n < x --> alpha < (x / T)^(1/n)
+    pub fn get_decay_for_n_iterations(iterations: u64, initial_temperature: f64) -> f64 {
+        (TEMPERATURE_THRESHOLD / initial_temperature).powf(1.0 / iterations as f64)
+    }
+
     pub fn new(iterations: u64, initial_temperature: f64, decay: f64) -> SimulatedAnnealing {
         SimulatedAnnealing{
             iterations: iterations,
@@ -51,7 +58,7 @@ impl SimulatedAnnealing {
         let mut best_cost: f64 = instance.current_cost();
         let mut best_solution: Solution = instance.copy_solution();
         for i in 0..self.iterations {
-            if temperature < 0.01 {
+            if temperature < TEMPERATURE_THRESHOLD {
                 break;
             }
             let _move: Move = instance.get_move();
