@@ -22,9 +22,13 @@ use crate::draw::*;
 fn main() {
     println!("Hello, SA!");
 
-    // let(blocks, nets) = parse_file("benchmark/n10.floor").unwrap();
-    let(blocks, nets) = parse_file("benchmark/n30.floor").unwrap();
-    // let(blocks, nets) = parse_file("benchmark/n300.floor").unwrap();
+    // let(mut blocks, nets) = parse_file("benchmark/n10.floor").unwrap();
+    let(mut blocks, nets) = parse_file("benchmark/n30.floor").unwrap();
+    // let(mut blocks, nets) = parse_file("benchmark/n300.floor").unwrap();
+    
+    blocks.sort_by_key(|rect| rect.width.max(rect.heigth));
+    // blocks.sort_by_key(|rect| ((rect.width.max(rect.heigth) as f64 / rect.width.min(rect.heigth) as f64) * 1000.0) as u32);
+
     let mut p: PolishExpression = PolishExpression::new(blocks, nets);
     // p.set_solution_operator_top();
     p.set_solution_all_vertical();
