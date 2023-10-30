@@ -7,6 +7,7 @@ mod definitions;
 mod instance_generator;
 mod parser;
 mod draw;
+mod slicing_tree;
 
 use crate::simulated_annealing::SimulatedAnnealing;
 // use crate::parabola::Parabola;

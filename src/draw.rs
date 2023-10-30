@@ -3,7 +3,7 @@ use draw::{Canvas, Drawing, Shape, Style, Fill, Stroke, RGB, Position};
 use draw::render::{self, svg::SvgRenderer};
 use draw::shape::LineBuilder;
 
-use crate::polish_expression::Floorplan;
+use crate::slicing_tree::Floorplan;
 use crate::definitions::Net;
 
 // colors

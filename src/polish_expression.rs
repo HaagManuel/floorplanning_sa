@@ -1,17 +1,12 @@
-use std::collections::VecDeque;
-
 use crate::simulated_annealing::{SAInstance, SAMove};
-use crate::shape_function::ShapeFunction;
 use crate::definitions::*;
+use crate::slicing_tree::*;
 use rand::prelude::*;
-
-pub type Floorplan = Vec<(usize, usize, Rectangle, ModuleNode)>;
 #[derive(Default)]
 pub struct PolishExpression {
     solution: Vec<ModuleNode>,
     modules: Vec<Rectangle>,
     nets: Vec<Net>,
-    tree: SlicingTree,
     num_operators: Vec<usize>, // to check if op3 is legal
     current_cost: f64,
     avg_wirelength: f64,
@@ -51,76 +46,6 @@ pub struct PolishExpressionMove {
     delta_cost: f64,
 }
 
-#[derive(Debug, Clone, Default)]
-struct SlicingTreeNode {
-    left: usize,
-    right: usize,
-    shape: ShapeFunction,
-    module_type: ModuleNode,
-}
-
-#[derive(Debug, Default)]
-struct SlicingTree {
-    root: usize,
-    nodes: Vec<SlicingTreeNode>,
-}
-
-impl SlicingTree {
-    fn get_bounding_box(&self) -> Rectangle {
-        self.nodes[self.root].shape.points
-            .iter()
-            .min_by_key(|&&r| r.area())
-            .unwrap()
-            .clone()
-    }
-    fn get_min_area(&self) -> Int {
-        self.get_bounding_box().area()
-    }
-
-    // (origin x, origin y, (width, height), ModuleNode)
-    fn get_floorplan(&self) -> Floorplan {
-        // same position in nodes and placement array
-        let mut placement: Vec<(usize, usize, Rectangle, ModuleNode)> = vec![(0,0, Rectangle::new(0,0), ModuleNode::H()); self.nodes.len()];
-        let mut queue: VecDeque<usize> = VecDeque::new();
-        let mut v: usize = self.root;
-        queue.push_back(v);
-        placement[v] = (0, 0, self.get_bounding_box(), self.nodes[v].module_type);
-        while queue.len() > 0 {
-            v = queue.pop_front().unwrap();
-            let l = self.nodes[v].left;
-            let r = self.nodes[v].right;
-            if l == r {
-                // leaf, Modulenode
-                continue;
-            }
-            let sf1 = &self.nodes[l].shape;
-            let sf2 = &self.nodes[r].shape;
-            let module_l = self.nodes[l].module_type;
-            let module_r = self.nodes[r].module_type;
-            let (x, y, rect, module_type) = placement[v];
-            let (r1, r2) = ShapeFunction::reconstruct(sf1, sf2, module_type, &rect).expect("reconstructing rectangle failed.");
-            placement[l] = (x, y, r1, module_l);
-            match module_type {
-                ModuleNode::H() => {
-                    placement[r] = (x, y + r1.heigth, r2, module_r);
-                }
-                ModuleNode::V() => {
-                    placement[r] = (x + r1.width, y, r2, module_r);
-                }
-                ModuleNode::Module(_) => panic!("parent should not be a module")
-            }
-            queue.push_back(l);
-            queue.push_back(r);
-        }
-        // filter modulenodes
-        let plan: Floorplan = placement
-            .into_iter()
-            .filter(|(_, _, _, module)| module.is_module())
-            .collect();
-        plan
-    }
-}
-
 impl PolishExpression {
     pub fn new(modules: Vec<Rectangle>, nets: Vec<Net>, alpha: f64) -> Self {
         let mut polish_expression = PolishExpression::default();
@@ -157,48 +82,14 @@ impl PolishExpression {
         self.num_operators = self.get_num_operator();
     }   
 
-    fn get_slicing_tree(&self) -> SlicingTree {
-        let nodes = vec![SlicingTreeNode::default(); self.solution.len()];
-        let mut tree = SlicingTree{root: 0, nodes: nodes};
-        let mut stack: Vec<usize> = Vec::new();
-        let mut index = 0;
-        for module_node in self.solution.iter() {
-            match *module_node {
-                ModuleNode::Module(id) => {
-                    let module: Rectangle = self.modules[id];
-                    let sf = ShapeFunction::from_iter([module, module.transpose()]);
-                    stack.push(index);
-                    tree.nodes[index].module_type = *module_node;
-                    tree.nodes[index].shape = sf;
-                    index += 1;
-                }
-                _ => {
-                    let right = stack.pop().unwrap();
-                    let left = stack.pop().unwrap();
-                    let sf1: &ShapeFunction = &tree.nodes[left].shape;
-                    let sf2: &ShapeFunction = &tree.nodes[right].shape;
-                    let combined: ShapeFunction = ShapeFunction::combine(sf1, sf2, *module_node);
-                    tree.nodes[index].left = left;
-                    tree.nodes[index].right = right;
-                    tree.nodes[index].module_type = *module_node;
-                    tree.nodes[index].shape = combined;
-                    stack.push(index);
-                    index += 1;
-                }
-            }
-        }
-        let root = stack.pop().unwrap();
-        debug_assert!(tree.nodes[root].shape.points.len() > 0);
-        tree.root = root;
-        tree
-    }
-
     pub fn get_floorplan(&self) -> Floorplan {
-        self.get_slicing_tree().get_floorplan()
+        let tree = SlicingTree::get_slicing_tree(&self.solution, &self.modules);
+        tree.get_floorplan()
     }
 
     pub fn get_total_area(&self) -> Int {
-        self.get_slicing_tree().get_min_area()
+        let tree = SlicingTree::get_slicing_tree(&self.solution, &self.modules);
+        tree.get_min_area()
     }
 
     pub fn get_dead_area(&self) -> f64 {
@@ -221,7 +112,6 @@ impl PolishExpression {
         .collect()
     }
 
-
     pub fn get_wirelength(&self, plan: &Floorplan) -> f64{
         let mut total_wirelength: f64 = 0.0;
         for net in self.nets.iter() {
@@ -238,7 +128,7 @@ impl PolishExpression {
     }
 
     fn eval_area_wirelength(&self) -> (f64, f64) {
-        let tree = self.get_slicing_tree();
+        let tree = SlicingTree::get_slicing_tree(&self.solution, &self.modules);
         let plan = tree.get_floorplan();
         let area = tree.get_bounding_box().area() as f64;
         let wirelength = self.get_wirelength(&plan);
