@@ -13,6 +13,15 @@ pub enum SPMoveType {
     SwapBothSides(usize, usize, usize, usize), 
 }
 
+macro_rules! index{
+       ($a:expr,$b:expr,$n:expr)=>{
+           {
+               $a * ($n + 2) + $b
+           }
+       }
+   }
+
+
 impl SPMoveType {
     fn apply(&self, sequence_pair: &mut SequencePair) {
         match *self {
@@ -39,7 +48,7 @@ pub struct SequencePair {
     y_sequence: Vec<Int>,
     index_y: Vec<usize>, // index of number i in y_sequence
     placement: Floorplan,
-    lca_array: Vec<Vec<Int>>, // later try 1-dim
+    lcs_array: Vec<Int>, // linearize 2-dim array, ~5-8% faster
     
     cost_function: CostFunction,
     current_cost: f64,
@@ -55,7 +64,7 @@ impl SequencePair {
         
         // initialize data structures
         sp.placement = vec![(0,0, Rectangle::new(0, 0)); n];
-        sp.lca_array = vec![vec![0; n + 2]; n + 2]; // border of zeros 
+        sp.lcs_array = vec![0; (n + 2) * (n + 2)]; // border of zeros 
         sp.modules = modules;
         sp.nets = nets;
 
@@ -87,7 +96,8 @@ impl SequencePair {
     }
     
     // O(n^2) later maybe O(n log n) with better algorithm
-    fn compute_lca<F, W>(&mut self, f_i: F, weight: W) where 
+    // compute longest common subsequenec between x- and y-sequence to determine coordinates
+    fn compute_lcs<F, W>(&mut self, f_i: F, weight: W) where 
     F: Fn(usize) -> usize,
     W: Fn(Rectangle) -> usize {
         let n = self.x_sequence.len();
@@ -97,10 +107,10 @@ impl SequencePair {
                 let j = b - 1;
                 let id = self.x_sequence[i];
                 if id == self.y_sequence[j] {
-                    self.lca_array[a][b] = self.lca_array[a - 1][b - 1] + weight(self.modules[id]); // width or heigth
+                    self.lcs_array[index!(a, b, n)] = self.lcs_array[index!(a - 1, b - 1, n)] + weight(self.modules[id]); // width or heigth
                 }
                 else {
-                    self.lca_array[a][b] = self.lca_array[a - 1][b].max(self.lca_array[a][b - 1]);
+                    self.lcs_array[index!(a, b, n)] = self.lcs_array[index!(a - 1, b, n)].max(self.lcs_array[index!(a, b - 1, n)]);
                 }
             }
         }
@@ -113,30 +123,30 @@ impl SequencePair {
         let get_width  = |rect: Rectangle| {rect.width};
         let get_height = |rect: Rectangle| {rect.height};
         
-        // lca (x, y, widths)    --> x-coords
-        self.compute_lca(shift, get_width);
-        self.bounding_box.width = self.lca_array[n][n];
+        // lcs (x, y, widths)    --> x-coords
+        self.compute_lcs(shift, get_width);
+        self.bounding_box.width = self.lcs_array[index!(n, n, n)];
         for i in 0..n {
             let id = self.x_sequence[i];
             let pos_y = self.index_y[id];
 
-            // lca array starts at 1
+            // lcs array starts at 1
             let width = self.modules[id].width;
             let height = self.modules[id].height;
-            let x_coord = self.lca_array[i + 1][pos_y + 1] - width;
+            let x_coord = self.lcs_array[index!(i + 1, pos_y + 1, n)] - width;
             self.placement[id] = (x_coord, 0, Rectangle::new(width, height));
         }
             
-        // lca (x^R, y, heights) --> y-coords
-        self.compute_lca(reverse, get_height);
-        self.bounding_box.height = self.lca_array[n][n];
+        // lcs (x^R, y, heights) --> y-coords
+        self.compute_lcs(reverse, get_height);
+        self.bounding_box.height = self.lcs_array[index!(n, n, n)];
         for i in 0..n {
             let id = self.x_sequence[i];
             let pos_y = self.index_y[id];
 
-            // lca array is top of of box
+            // lcs array is top of of box
             let height = self.modules[id].height;
-            let y_coord = self.lca_array[n - i][pos_y + 1] - height;
+            let y_coord = self.lcs_array[index!(n - i, pos_y + 1, n)] - height;
             self.placement[id].1 = y_coord;
         }
     }

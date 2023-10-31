@@ -39,7 +39,7 @@ fn main() {
     let initial_prob = 0.95;
     let initial_temperature = SimulatedAnnealing::estimate_initial_temperature(initial_prob, num_moves, &mut p);
     
-    let iterations = 100_0000;
+    let iterations = 100_000;
     let decay = SimulatedAnnealing::get_decay_for_n_iterations(iterations, initial_temperature);
     println!("T: {}, it: {}, decay: {}", initial_temperature, iterations, decay);
     
