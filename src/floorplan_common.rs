@@ -76,6 +76,12 @@ impl CostFunction {
             algo.apply_move(&_move);
             
         }
+        if sum_wirelength == 0.0 {
+            sum_wirelength = repetitions as f64;
+        }
+        if sum_area == 0.0 {
+            sum_area = repetitions as f64
+        }
         (sum_area / repetitions as f64, sum_wirelength / repetitions as f64)
     }
 

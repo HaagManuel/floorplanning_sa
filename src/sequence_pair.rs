@@ -121,12 +121,12 @@ impl SequencePair {
             let pos_y = self.index_y[id];
 
             // lca array starts at 1
-            let x_coord = self.lca_array[i + 1][pos_y + 1];
             let width = self.modules[id].width;
             let height = self.modules[id].height;
+            let x_coord = self.lca_array[i + 1][pos_y + 1] - width;
             self.placement[id] = (x_coord, 0, Rectangle::new(width, height));
         }
-        
+            
         // lca (x^R, y, heights) --> y-coords
         self.compute_lca(reverse, get_height);
         self.bounding_box.height = self.lca_array[n][n];
@@ -134,8 +134,9 @@ impl SequencePair {
             let id = self.x_sequence[i];
             let pos_y = self.index_y[id];
 
-            // lca array starts at 1
-            let y_coord = self.lca_array[n - i + 1][pos_y + 1];
+            // lca array is top of of box
+            let height = self.modules[id].height;
+            let y_coord = self.lca_array[n - i][pos_y + 1] - height;
             self.placement[id].1 = y_coord;
         }
     }
@@ -221,6 +222,9 @@ impl Solution<SequencePairSolution> for SequencePair {
 
     fn set_solution(&mut self, solution: SequencePairSolution) {
         (self.x_sequence, self.y_sequence, self.modules) = solution;
+        for (pos, id) in self.y_sequence.iter().enumerate() {
+            self.index_y[*id] = pos;
+        }
         self.update();
     }
 }

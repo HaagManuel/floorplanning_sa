@@ -11,6 +11,7 @@ mod slicing_tree;
 mod sequence_pair;
 mod floorplan_common;
 
+use crate::definitions::Rectangle;
 use crate::simulated_annealing::SimulatedAnnealing;
 use crate::parser::*;
 use crate::draw::*;
@@ -21,14 +22,14 @@ use crate::polish_expression::*;
 fn main() {
     println!("Hello, SA!");
     
-    let(mut blocks, nets) = parse_file("benchmark/n10.floor").unwrap();
-    // let(mut blocks, nets) = parse_file("benchmark/n30.floor").unwrap();
+    // let(mut blocks, nets) = parse_file("benchmark/n10.floor").unwrap();
+    let(mut blocks, nets) = parse_file("benchmark/n30.floor").unwrap();
     // let(mut blocks, nets) = parse_file("benchmark/n300.floor").unwrap();
-    
+
     let net_list = nets.clone();
     let modules = blocks.clone();
     let num_blocks = blocks.len();
-    blocks.sort_by_key(|rect| rect.width.max(rect.height));
+    // blocks.sort_by_key(|rect| rect.width.max(rect.height));
 
     let alpha: f64 = 0.5;
     let mut p = SequencePair::new(blocks, nets, alpha);
@@ -38,7 +39,7 @@ fn main() {
     let initial_prob = 0.95;
     let initial_temperature = SimulatedAnnealing::estimate_initial_temperature(initial_prob, num_moves, &mut p);
     
-    let iterations = 100_000;
+    let iterations = 100_0000;
     let decay = SimulatedAnnealing::get_decay_for_n_iterations(iterations, initial_temperature);
     println!("T: {}, it: {}, decay: {}", initial_temperature, iterations, decay);
     
