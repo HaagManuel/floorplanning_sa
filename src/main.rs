@@ -54,9 +54,13 @@ fn main() {
     let dead_area_after = CostFunction::get_dead_area(&p, &modules);
     let wire_after = p.get_floor_wire();
     let wire_reduction = (wire_after / wire_before) * 100.0;
+    let area_after = p.get_floor_area();
 
+    println!("");
     println!("dead area before {:.2?}, after {:.2?}%", dead_area_before, dead_area_after);
     println!("{:.2?}% of wirelength before", wire_reduction);
+    println!("total area: {}", area_after);
+    println!("total wire: {}", wire_after);
     
     let svg_image1 = "plan_before.svg";
     let svg_image2 = "plan_after.svg";
