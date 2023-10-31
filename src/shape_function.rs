@@ -14,14 +14,14 @@ impl ShapeFunction {
         debug_assert!(self.points.len() > 0);
         self.points.sort_by(|a, b| a.partial_cmp(b).unwrap());
         let mut new_vec: Vec<Rectangle> = Vec::new(); // TODO may optimize
-        let mut lowest_heigth = self.points[0].heigth;
+        let mut lowest_height = self.points[0].height;
         new_vec.push(self.points[0]);
         for i in 1..self.points.len() {
             let last_rect = self.points[i - 1];
             let rect = self.points[i];
-            if last_rect.width < rect.width && rect.heigth < lowest_heigth{ 
+            if last_rect.width < rect.width && rect.height < lowest_height{ 
                 new_vec.push(rect);
-                lowest_heigth = rect.heigth;
+                lowest_height = rect.height;
             }
         }
         self.points = new_vec;

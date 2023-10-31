@@ -1,6 +1,7 @@
 use crate::simulated_annealing::{SAInstance, SAMove};
 use crate::definitions::*;
 use crate::slicing_tree::*;
+use crate::floorplan_common::*;
 use rand::prelude::*;
 #[derive(Default)]
 pub struct PolishExpression {
@@ -97,7 +98,6 @@ impl PolishExpression {
         self.tree.get_min_area()
     }
 
-    // pub fn get_dead_area(&self) -> f64 {
     pub fn get_dead_area(&mut self) -> f64 {
         let occupied_area: usize = self.modules
             .iter()
@@ -118,26 +118,11 @@ impl PolishExpression {
         .collect()
     }
 
-    pub fn get_wirelength(&self, plan: &Floorplan) -> f64{
-        let mut total_wirelength: f64 = 0.0;
-        for net in self.nets.iter() {
-            let mut bounding_box = BoundingBox::new(f64::MAX, -f64::MAX, f64::MAX, -f64::MAX);
-            for id in net.pins.iter() {
-                let (pos_x, pos_y, rect, _) = plan[*id];
-                let (center_x, center_y) = rect.center(pos_x, pos_y);
-                bounding_box.extend_point(center_x, center_y);
-            }
-            // half perimeter estimation
-            total_wirelength += bounding_box.get_width() + bounding_box.get_height();
-        }
-        total_wirelength
-    }
-
     fn eval_area_wirelength(&mut self) -> (f64, f64) {
         self.tree.recompute(&self.solution, &self.modules);
         self.tree.recompute_floorplan();
         let area = self.tree.get_bounding_box().area() as f64;
-        let wirelength = self.get_wirelength(&self.tree.placement);
+        let wirelength = CostFunction::compute_wirelength(&self.tree.placement, &self.nets);
         (area, wirelength)
     }
 
@@ -148,7 +133,7 @@ impl PolishExpression {
         let cost = area_cost * self.alpha + wire_cost * (1.0 - self.alpha);
         cost
         // punish rectangles that are far from a square just for testing packing
-        // let cost =  rect.area() + rect.width * rect.width + rect.heigth * rect.heigth;
+        // let cost =  rect.area() + rect.width * rect.width + rect.height * rect.height;
         // cost as f64
     }
 

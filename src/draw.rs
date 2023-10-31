@@ -2,9 +2,8 @@
 use draw::{Canvas, Drawing, Shape, Style, Fill, Stroke, RGB, Position};
 use draw::render::{self, svg::SvgRenderer};
 use draw::shape::LineBuilder;
+use crate::definitions::*;
 
-use crate::slicing_tree::Floorplan;
-use crate::definitions::Net;
 
 // colors
 const RECT_COLOR: RGB = RGB::new(65,105,225);
@@ -13,11 +12,11 @@ const STROKE_COLOR: RGB = RGB::new(0, 0, 0);
 const LINE_COLOR: RGB = RGB::new(220,20,60);
 const LINE_WIDTH: u32 = 1;
 
-fn create_rectangle(x: f32, y: f32, width: u32, heigth: u32, fill: RGB) -> Drawing {
+fn create_rectangle(x: f32, y: f32, width: u32, height: u32, fill: RGB) -> Drawing {
     // create a rectangle
     let mut rect = Drawing::new(Shape::Rectangle {
         width :  width,
-        height: heigth,
+        height: height,
     });
 
     // move it around
@@ -34,7 +33,7 @@ fn create_rectangle(x: f32, y: f32, width: u32, heigth: u32, fill: RGB) -> Drawi
 
 fn create_line_from_net(plan: &Floorplan, net: &Net, canvas_height: u32) -> Drawing {
     let get_center = |i: usize| -> (f32, f32) {
-        let (pos_x, pos_y, rect, _) = plan[net.pins[i]];
+        let (pos_x, pos_y, rect) = plan[net.pins[i]];
         let (center_x, center_y) = rect.center(pos_x, pos_y);
         (center_x as f32, canvas_height as f32 - center_y as f32)
     };
@@ -67,8 +66,8 @@ fn compute_canvas_size(plan: &Floorplan) -> (u32, u32) {
     let (max_x, max_y) : (usize, usize) = plan
     .iter()
     .fold((0,0),
-     |(acc_x, acc_y), (x, y, rect, _) | 
-     (acc_x.max(x + rect.width),  acc_y.max(y + rect.heigth))
+     |(acc_x, acc_y), (x, y, rect) | 
+     (acc_x.max(x + rect.width),  acc_y.max(y + rect.height))
     );
     (max_x as u32, max_y as u32)
 }
@@ -82,10 +81,10 @@ pub fn draw_floorplan(plan: &Floorplan, file: &str, net_list: &Vec<Net>, draw_ne
     canvas.display_list.add(background);
     
     // add rectangles
-    for (x, y, module_rect, _) in plan {
-        let mut rect = create_rectangle(*x as f32 , *y as f32, module_rect.width as u32, module_rect.heigth as u32, RECT_COLOR);      
+    for (x, y, module_rect) in plan {
+        let mut rect = create_rectangle(*x as f32 , *y as f32, module_rect.width as u32, module_rect.height as u32, RECT_COLOR);      
         // shift origin from upper left to lower left
-        rect.position.y = canvas_height as f32 - rect.position.y - module_rect.heigth as f32;
+        rect.position.y = canvas_height as f32 - rect.position.y - module_rect.height as f32;
         canvas.display_list.add(rect);
     }
 

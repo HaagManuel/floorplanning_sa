@@ -1,7 +1,6 @@
 use crate::shape_function::ShapeFunction;
 use crate::definitions::*;
 
-pub type Floorplan = Vec<(usize, usize, Rectangle, ModuleNode)>;
 
 #[derive(Debug, Clone, Default)]
 struct SlicingTreeNode {
@@ -15,7 +14,7 @@ struct SlicingTreeNode {
 pub struct SlicingTree {
     root: usize,
     nodes: Vec<SlicingTreeNode>,
-    node_placement: Floorplan,
+    node_placement: Vec<(usize, usize, Rectangle, ModuleNode)>,
     pub placement: Floorplan,
     stack: Vec<usize>,
 }
@@ -26,7 +25,7 @@ impl SlicingTree {
         let num_nodes = 2 * num_modules - 1;
         let nodes = vec![SlicingTreeNode::default(); num_nodes];
         let node_placement = vec![(0,0, Rectangle::new(0,0), ModuleNode::H()); num_nodes];
-        let placement = vec![(0,0, Rectangle::new(0,0), ModuleNode::H()); num_modules];
+        let placement = vec![(0,0, Rectangle::new(0,0)); num_modules];
         let stack = Vec::new();
         SlicingTree{root, nodes, node_placement, placement, stack}
     }
@@ -87,7 +86,7 @@ impl SlicingTree {
             self.node_placement[l] = (x, y, r1, module_l);
             match module_type {
                 ModuleNode::H() => {
-                    self.node_placement[r] = (x, y + r1.heigth, r2, module_r);
+                    self.node_placement[r] = (x, y + r1.height, r2, module_r);
                 }
                 ModuleNode::V() => {
                     self.node_placement[r] = (x + r1.width, y, r2, module_r);
@@ -101,7 +100,7 @@ impl SlicingTree {
         for (x, y, rect, module) in self.node_placement.iter() {
             match *module {
                 ModuleNode::Module(i) => {
-                    self.placement[i] = (*x, *y, *rect, *module);
+                    self.placement[i] = (*x, *y, *rect);
                 }
                 _ => (),
             }

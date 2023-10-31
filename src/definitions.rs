@@ -1,10 +1,11 @@
 
 pub type Int = usize;
+pub type Floorplan = Vec<(usize, usize, Rectangle)>;
 
-#[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
+#[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Default)]
 pub struct Rectangle {
     pub width: Int,
-    pub heigth: Int,
+    pub height: Int,
 }
 
 pub struct BoundingBox {
@@ -27,33 +28,32 @@ impl Default for ModuleNode {
     }
 }
 
-
 #[derive(Debug, Clone, Default)]
 pub struct Net {
     pub pins: Vec<usize>,
 }
 
 impl Rectangle {
-    pub fn new(width: Int, heigth: Int) -> Self {
-        Rectangle {width, heigth}
+    pub fn new(width: Int, height: Int) -> Self {
+        Rectangle {width, height}
     }
 
     pub fn transpose(&self) -> Rectangle {
-        Rectangle { width: self.heigth, heigth: self.width}
+        Rectangle { width: self.height, height: self.width}
     }
 
     // b on top of a
     fn combine_h(a: Rectangle, b: Rectangle) -> Rectangle {
         let width = a.width.max(b.width);
-        let heigth = a.heigth + b.heigth;
-        Rectangle {width,  heigth}
+        let height = a.height + b.height;
+        Rectangle {width,  height}
     }
 
     // b on right of a
     fn combine_v(a: Rectangle, b: Rectangle) -> Rectangle {
         let width = a.width + b.width;
-        let heigth = a.heigth.max(b.heigth);
-        Rectangle {width,  heigth}
+        let height = a.height.max(b.height);
+        Rectangle {width,  height}
     }
 
     pub fn combine(a: Rectangle, b: Rectangle, v_or_h: ModuleNode) -> Rectangle {
@@ -65,13 +65,13 @@ impl Rectangle {
     }
 
     pub fn area(&self) -> Int {
-        self.width * self.heigth
+        self.width * self.height
     }
     
     // assumes position is at bottom left corner
     pub fn center(&self, pos_x: Int, pos_y: Int) -> (f64, f64) {
         let center_x = pos_x as f64 + (self.width as f64 / 2.0);
-        let center_y = pos_y as f64 + (self.heigth as f64 / 2.0);
+        let center_y = pos_y as f64 + (self.height as f64 / 2.0);
         (center_x, center_y)
     }
 }
