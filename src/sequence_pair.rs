@@ -1,6 +1,5 @@
 
-use crate::simulated_annealing::SAMove;
-use crate::{definitions::*, simulated_annealing::SAInstance};
+use crate::definitions::*;
 use crate::floorplan_common::*;
 use rand::prelude::*;
 
@@ -29,18 +28,6 @@ impl SPMoveType {
                 sequence_pair.index_y.swap(sequence_pair.y_sequence[c], sequence_pair.y_sequence[d]);
             }   
         }
-    }
-}
-
-#[derive(Debug)]
-pub struct SequencePairMove {
-    move_type: SPMoveType,
-    delta_cost: f64,
-}
-
-impl SAMove for SequencePairMove {
-    fn get_delta_cost(&self) -> f64 {
-        self.delta_cost
     }
 }
 
@@ -205,15 +192,23 @@ impl Mutation<SPMoveType> for SequencePair {
 }
 
 impl FloorCost for SequencePair {
-    fn get_floor_area(&mut self) -> f64 {
+    fn get_floor_area(&self) -> f64 {
         self.current_area
     }
 
-    fn get_floor_wire(&mut self) -> f64 {
+    fn get_floor_wire(&self) -> f64 {
         self.current_wire
+    }   
+}
+
+impl FloorPlan for SequencePair {
+    fn get_floorplan(&self) -> Floorplan {
+        self.placement.clone()
     }
-    
-    fn get_floor_cost(&mut self) -> f64 {
+}
+
+impl Cost for SequencePair {
+    fn get_cost(&self) -> f64 {
         self.current_cost
     }
 }
@@ -226,5 +221,6 @@ impl Solution<SequencePairSolution> for SequencePair {
 
     fn set_solution(&mut self, solution: SequencePairSolution) {
         (self.x_sequence, self.y_sequence, self.modules) = solution;
+        self.update();
     }
 }

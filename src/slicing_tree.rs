@@ -114,7 +114,7 @@ impl SlicingTree {
             .unwrap()
             .clone()
     }
-    pub fn get_min_area(&self) -> Int {
-        self.get_bounding_box().area()
+    pub fn get_min_area(&self) -> f64 {
+        self.get_bounding_box().area() as f64
     }
 }

@@ -1,20 +1,9 @@
-use crate::simulated_annealing::{SAInstance, SAMove};
 use crate::definitions::*;
 use crate::slicing_tree::*;
 use crate::floorplan_common::*;
 use rand::prelude::*;
-#[derive(Default)]
-pub struct PolishExpression {
-    solution: Vec<ModuleNode>,
-    modules: Vec<Rectangle>,
-    nets: Vec<Net>,
-    num_operators: Vec<usize>, // to check if op3 is legal
-    tree: SlicingTree,
-    current_cost: f64,
-    avg_wirelength: f64,
-    avg_area: f64,
-    alpha: f64, // between 0 and 1, -> 1 area more important, -> 0 wirelength more important
-}
+
+pub type PolishExpressionSolution = Vec<ModuleNode>;
 
 #[derive(Debug)]
 pub enum PEMoveType {
@@ -42,21 +31,48 @@ impl PEMoveType {
     }
 }
 
-#[derive(Debug)]
-pub struct PolishExpressionMove {
-    move_type: PEMoveType,
-    delta_cost: f64,
+#[derive(Default)]
+pub struct PolishExpression {
+    solution: PolishExpressionSolution,
+    modules: Vec<Rectangle>,
+    nets: Vec<Net>,
+    num_operators: Vec<usize>, // to check if op3 is legal
+    tree: SlicingTree,
+
+    cost_function: CostFunction,
+    current_cost: f64,
+    current_area: f64,
+    current_wire: f64,
 }
+
 
 impl PolishExpression {
     pub fn new(modules: Vec<Rectangle>, nets: Vec<Net>, alpha: f64) -> Self {
         let n = modules.len();
-        let mut polish_expression = PolishExpression::default();
-        polish_expression.modules = modules;
-        polish_expression.nets = nets;
-        polish_expression.alpha = alpha;
-        polish_expression.tree = SlicingTree::new(n);
-        polish_expression
+        let mut pe = PolishExpression::default();
+        
+        // initialize data structures
+        pe.modules = modules;
+        pe.nets = nets;
+        pe.tree = SlicingTree::new(n);
+        
+        pe.set_solution_all_vertical();
+
+        // compute averages for cost function
+        let repetitions = 3 * n;
+        let (avg_wirelength,avg_area) = CostFunction::compute_mean_parameters(&mut pe, repetitions);
+        pe.cost_function = CostFunction::new(alpha, avg_wirelength, avg_area);
+        pe.current_cost = pe.cost_function.get_cost(pe.current_area, pe.current_wire);
+        pe
+    }
+
+    pub fn update(&mut self) {
+        self.tree.recompute(&self.solution, &self.modules);
+        self.tree.recompute_floorplan();
+        self.current_area = self.tree.get_min_area();
+        self.current_wire = CostFunction::compute_wirelength(&self.tree.placement, &self.nets);
+        self.current_cost = self.cost_function.get_cost(self.current_area, self.current_wire);
+        self.num_operators = self.get_num_operator();   
     }
 
     // first all module ids than HVHVHVH
@@ -77,36 +93,6 @@ impl PolishExpression {
         self.set_solution(solution);
     }
 
-    pub fn set_solution(&mut self, solution: Vec<ModuleNode>) {
-        self.solution = solution;
-        let (avg_area, avg_wire) = self.get_avg_wirelenth_avg_area(3 * self.solution.len());
-        self.avg_area = avg_area;
-        self.avg_wirelength = avg_wire;
-        self.current_cost = self.eval_expression();
-        self.num_operators = self.get_num_operator();
-    }   
-
-    // clones floorplan
-    pub fn get_floorplan(&mut self) -> Floorplan {
-        self.tree.recompute(&self.solution, &self.modules);
-        self.tree.recompute_floorplan();
-        self.tree.placement.clone()
-    }
-
-    pub fn get_total_area(&mut self) -> Int {
-        self.tree.recompute(&self.solution, &self.modules);
-        self.tree.get_min_area()
-    }
-
-    pub fn get_dead_area(&mut self) -> f64 {
-        let occupied_area: usize = self.modules
-            .iter()
-            .map(|rect| rect.area())
-            .sum();
-        let total_area = self.get_total_area();
-        1.0 - (occupied_area as f64 / total_area as f64)
-    }
-
     fn get_num_operator(&self) -> Vec<usize> {
         self.solution.iter()
         .scan(0, |sum, m| {
@@ -116,25 +102,6 @@ impl PolishExpression {
             }
         )
         .collect()
-    }
-
-    fn eval_area_wirelength(&mut self) -> (f64, f64) {
-        self.tree.recompute(&self.solution, &self.modules);
-        self.tree.recompute_floorplan();
-        let area = self.tree.get_bounding_box().area() as f64;
-        let wirelength = CostFunction::compute_wirelength(&self.tree.placement, &self.nets);
-        (area, wirelength)
-    }
-
-    pub fn eval_expression(&mut self) -> f64 {
-        let (area, wirelength) = self.eval_area_wirelength();
-        let area_cost = area / self.avg_area;
-        let wire_cost = wirelength / self.avg_wirelength;
-        let cost = area_cost * self.alpha + wire_cost * (1.0 - self.alpha);
-        cost
-        // punish rectangles that are far from a square just for testing packing
-        // let cost =  rect.area() + rect.width * rect.width + rect.height * rect.height;
-        // cost as f64
     }
 
     fn get_swap_adjacent_operands(&self) -> PEMoveType {
@@ -218,22 +185,9 @@ impl PolishExpression {
             None
         }
     }
+}
 
-    fn get_avg_wirelenth_avg_area(&mut self, repetitions: usize) -> (f64, f64) {
-        let mut sum_area = 0.0;
-        let mut sum_wirelength = 0.0;
-        for _ in 0..repetitions {
-            let _move = self.get_random_move();
-            _move.apply(&mut self.solution);
-            let (area, wire) = self.eval_area_wirelength();
-            _move.apply(&mut self.solution);
-            sum_area += area;
-            sum_wirelength += wire;
-            
-        }
-        (sum_area / repetitions as f64, sum_wirelength / repetitions as f64)
-    }
-
+impl Mutation<PEMoveType> for PolishExpression {
     fn get_random_move(&mut self) -> PEMoveType {
         let mut rng: ThreadRng = rand::thread_rng();
         let r: u64 = rng.gen_range(0..3);
@@ -243,7 +197,8 @@ impl PolishExpression {
             1 => self.get_invert_chain(),
             _ => {
                 // make sure prefix array is updated
-                self.num_operators = self.get_num_operator();
+                // only needed for move 3
+                // self.num_operators = self.get_num_operator();
                 // can fail if there is no possible swap
                 self.swap_operand_operator().unwrap_or(self.get_swap_adjacent_operands())
             },
@@ -251,41 +206,41 @@ impl PolishExpression {
         move_type
     }
 
+    fn apply_move(&mut self, _move: &PEMoveType) {
+        _move.apply(&mut self.solution);
+        self.update();
+    }
 }
 
-impl SAInstance<PolishExpressionMove, Vec<ModuleNode>> for PolishExpression {
-    fn get_move(&mut self) -> PolishExpressionMove {
-        let move_type: PEMoveType = self.get_random_move();
-        let old: f64 = self.eval_expression();
-        move_type.apply(&mut self.solution);
-        let new: f64 = self.eval_expression();
-        move_type.apply(&mut self.solution);
-        let delta_cost: f64 = new - old;
-        return PolishExpressionMove{move_type, delta_cost}
+impl FloorCost for PolishExpression {
+    fn get_floor_wire(&self) -> f64 {
+        self.current_wire
     }
-
-    fn apply_move(&mut self, _move: PolishExpressionMove) {
-        let move_type: PEMoveType = _move.move_type;
-        self.current_cost += _move.delta_cost;
-        move_type.apply(&mut self.solution);
+    
+    fn get_floor_area(&self) -> f64 {
+        self.current_area
     }
+}
 
-    fn current_cost(&self) -> f64 {
+impl FloorPlan for PolishExpression {
+    fn get_floorplan(&self) -> Floorplan {
+        self.tree.placement.clone()
+    }
+}
+
+impl Cost for PolishExpression {
+    fn get_cost(&self) -> f64 {
         self.current_cost
     }
+}
 
-    fn copy_solution(&self) -> Vec<ModuleNode> {
+impl Solution<PolishExpressionSolution> for PolishExpression {
+    fn copy_solution(&self) -> PolishExpressionSolution {
         self.solution.clone()
     }
 
-    fn set_solution(&mut self, solution: Vec<ModuleNode>) {
-        self.set_solution(solution)
-    }
-
-}
-
-impl SAMove for PolishExpressionMove {
-    fn get_delta_cost(&self) -> f64 {
-        self.delta_cost
+    fn set_solution(&mut self, solution: PolishExpressionSolution) {
+        self.solution = solution;
+        self.update();
     }
 }

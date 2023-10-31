@@ -6,9 +6,16 @@ pub trait Mutation<Move> {
 }
 
 pub trait FloorCost {
-    fn get_floor_wire(&mut self) -> f64;
-    fn get_floor_area(&mut self) -> f64;
-    fn get_floor_cost(&mut self) -> f64;
+    fn get_floor_wire(&self) -> f64;
+    fn get_floor_area(&self) -> f64;
+}
+
+pub trait FloorPlan {
+    fn get_floorplan(&self) -> Floorplan;
+}
+
+pub trait Cost {
+    fn get_cost(&self) -> f64;
 }
 
 pub trait Solution<T: Clone> {
@@ -71,5 +78,14 @@ impl CostFunction {
         }
         (sum_area / repetitions as f64, sum_wirelength / repetitions as f64)
     }
-}
 
+    // returns dead area in percent
+    pub fn get_dead_area<T: FloorCost>(floor: &T, modules: &Vec<Rectangle>) -> f64{
+        let occupied_area: usize = modules.iter()
+            .map(|rect| rect.area())
+            .sum();
+        let total_area = floor.get_floor_area();
+        let dead_area = 1.0 - (occupied_area as f64 / total_area as f64);
+        dead_area * 100.0
+    }
+}
