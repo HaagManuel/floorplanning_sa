@@ -57,15 +57,12 @@ impl SimulatedAnnealing {
         let mut best_solution: S = instance.copy_solution();
         let mut current_cost: f64 = best_cost;
         for i in 0..self.iterations {
-            if temperature < TEMPERATURE_THRESHOLD * self.initial_temperature {
-                break;
-            }
             let _move: Move = instance.get_random_move();
             instance.apply_move(&_move);
             let new_cost = instance.get_cost();
             let delta: f64 = new_cost - current_cost;
             
-            if delta <= 0.0 || rng.gen::<f64>() < (-delta / temperature).exp() {
+            if delta <= 0.0 || rng_vector[i] < (-delta / temperature).exp() {
                 // keep state
                 current_cost = new_cost;
             }

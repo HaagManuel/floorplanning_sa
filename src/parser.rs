@@ -28,7 +28,7 @@ where P: AsRef<Path>, {
     }
     for i in 0..num_nets {
         let pins = parse_ints(&lines[i + 1 + num_blocks]).iter().map(|&x| x as usize).collect();
-        nets.push(Net::new(pins));
+        nets.push(Net::new(pins, i));
     }
     Ok((blocks, nets))
 }

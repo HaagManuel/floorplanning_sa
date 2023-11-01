@@ -10,8 +10,10 @@ mod draw;
 mod slicing_tree;
 mod sequence_pair;
 mod floorplan_common;
+mod hypergraph;
 
 use crate::definitions::Rectangle;
+use crate::hypergraph::Hypergraph;
 use crate::simulated_annealing::SimulatedAnnealing;
 use crate::parser::*;
 use crate::draw::*;

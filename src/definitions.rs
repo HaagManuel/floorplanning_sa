@@ -31,6 +31,7 @@ impl Default for ModuleNode {
 #[derive(Debug, Clone, Default)]
 pub struct Net {
     pub pins: Vec<usize>,
+    pub id: usize,
 }
 
 impl Rectangle {
@@ -115,7 +116,7 @@ impl ModuleNode {
 }
 
 impl Net {
-    pub fn new(pins: Vec<usize>) -> Self {
-        Net{pins}
+    pub fn new(pins: Vec<usize>, id: usize) -> Self {
+        Net{pins, id}
     }
 }
