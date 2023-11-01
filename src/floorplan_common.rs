@@ -1,4 +1,4 @@
-use crate::definitions::*;
+use crate::{definitions::*, hypergraph::Hypergraph};
 
 pub trait Mutation<Move> {
     fn get_random_move(&mut self) -> Move;
@@ -93,5 +93,67 @@ impl CostFunction {
         let total_area = floor.get_floor_area();
         let dead_area = 1.0 - (occupied_area as f64 / total_area as f64);
         dead_area * 100.0
+    }
+}
+
+/// greedy method to generate a linear ordering of the modules reducing wirelength
+/// reduced wirelength a bit, but increase area in experiments
+pub fn cluster_growing_order(graph: &Hypergraph, start_node: Int) -> Vec<Int> {
+    let mut order: Vec<Int> = vec![start_node];
+    let mut placed_nodes: Vec<bool> = vec![false; graph.num_nodes];
+    placed_nodes[start_node] = true;
+
+    // place node with highest gain
+    // gain = terminating nets - new nets
+    for _ in 0..graph.num_nodes - 1 {
+        let mut best_gain: i32 = -i32::MAX;
+        let mut best_node: Int = 0;
+        for v in 0..graph.num_nodes {
+            if !placed_nodes[v] {
+                let mut terminating_nets = 0; 
+                let mut new_nets = 0; 
+                for net in graph.out_nets[v].iter() {
+                    terminating_nets += net.pins.iter().all(|w| placed_nodes[*w]) as i32;
+                    new_nets += net.pins.iter().all(|w| !placed_nodes[*w]) as i32;
+                }
+                let gain = terminating_nets - new_nets;
+                if gain > best_gain {
+                    best_gain = gain;
+                    best_node = v;
+                }
+            }
+        }
+        placed_nodes[best_node] = true;
+        order.push(best_node);
+    }
+    order
+}
+
+pub fn reorder_vec<T: Clone>(permutation: &Vec<usize>, vec: &Vec<T>) -> Vec<T> {
+    let mut new_vec: Vec<T> = Vec::new();
+    new_vec.reserve_exact(vec.len());
+    for i in permutation {
+        new_vec.push(vec[permutation[*i]].clone());
+    }
+    new_vec
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_cluster_growth() {
+        let nets = vec![
+            Net{pins: vec![0, 1],    id: 0},
+            Net{pins: vec![0, 3],    id: 1},
+            Net{pins: vec![0, 2, 4], id: 2},
+            Net{pins: vec![1, 3],    id: 3},
+            Net{pins: vec![2, 3, 4], id: 4},
+            Net{pins: vec![3, 4],    id: 5},
+        ];
+        let graph = Hypergraph::from(nets);
+        let order = cluster_growing_order(&graph, 0);
+        assert_eq!(order, vec![0, 1, 3, 4, 2]);
     }
 }

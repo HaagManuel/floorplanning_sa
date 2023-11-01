@@ -28,6 +28,10 @@ fn main() {
     let(mut blocks, nets) = parse_file("benchmark/n30.floor").unwrap();
     // let(mut blocks, nets) = parse_file("benchmark/n300.floor").unwrap();
 
+    let graph = Hypergraph::from(nets.clone());
+    let order = cluster_growing_order(&graph, 0);
+    let blocks = reorder_vec(&order, &blocks);
+    
     let net_list = nets.clone();
     let modules = blocks.clone();
     let num_blocks = blocks.len();
