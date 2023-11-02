@@ -163,18 +163,18 @@ impl Mutation<SPMoveType> for SequencePair {
          }
          
         macro_rules! two_random {
-        ($m:expr) => {{
-            let (c, d): (usize, usize);
-            loop {
-                let a = random!($m);
-                let b = random!($m);
-                if a != b {
-                    (c, d) = (a, b);
-                    break;
+            ($m:expr) => {{
+                let (c, d): (usize, usize);
+                loop {
+                    let a = random!($m);
+                    let b = random!($m);
+                    if a != b {
+                        (c, d) = (a, b);
+                        break;
+                    }
                 }
-            }
-            (c, d)
-        }};
+                (c, d)
+            }};
         }
         let n = self.modules.len();
         let r = random!(4);
@@ -238,3 +238,61 @@ impl Solution<SequencePairSolution> for SequencePair {
         self.update();
     }
 }
+
+impl RandomSolution<SequencePairSolution> for SequencePair {
+    fn random_solution(&self) -> SequencePairSolution {
+        let mut x_sequence: Vec<usize> = (0..self.x_sequence.len()).collect();
+        let mut y_sequence: Vec<usize> = x_sequence.clone();
+        let mut rect = self.modules.clone();
+        for i in 0..rect.len() {
+            if thread_rng().gen_bool(0.5) {
+                rect[i] = rect[i].transpose();
+            }
+        }
+        x_sequence.shuffle(&mut thread_rng());
+        y_sequence.shuffle(&mut thread_rng());
+        rect.shuffle(&mut thread_rng());
+        (x_sequence, y_sequence, rect)
+    }
+}
+
+impl Crossover<SequencePairSolution> for SequencePair {
+    fn crossover(&self, a: &SequencePairSolution, b: &SequencePairSolution) -> SequencePairSolution {
+        
+        let n = self.modules.len();
+        let n_half = n.div_ceil(2);
+        let mut selected = vec![false; n_half];
+        let mut n2 = vec![true; n - n_half];
+        selected.append(&mut n2);
+
+        let mut x_sequence: Vec<usize> = Vec::new();
+        let mut y_sequence: Vec<usize> = Vec::new();
+        let mut rect: Vec<Rectangle> = Vec::new();
+        x_sequence.reserve_exact(n);
+        y_sequence.reserve_exact(n);
+        rect.reserve_exact(n);
+
+        for i in 0..n {
+            if selected[a.0[i]] {
+                x_sequence.push(a.0[i]);
+            }
+            if selected[a.1[i]] {
+                y_sequence.push(a.1[i]);
+            }
+            if selected[i] {
+                rect.push(a.2[i]);
+            }
+            if !selected[b.0[i]] {
+                x_sequence.push(b.0[i]);
+            }
+            if !selected[b.1[i]] {
+                y_sequence.push(b.1[i]);
+            }
+            if !selected[i] {
+                rect.push(a.2[i]);
+            }
+        }
+        (x_sequence, y_sequence, rect)
+    }
+}
+

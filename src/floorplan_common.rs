@@ -1,8 +1,13 @@
+
 use crate::{definitions::*, hypergraph::Hypergraph};
 
 pub trait Mutation<Move> {
     fn get_random_move(&mut self) -> Move;
     fn apply_move(&mut self, _move: &Move);
+}
+
+pub trait Crossover<S: Clone> {
+    fn crossover(&self, a: &S, b: &S) -> S;
 }
 
 pub trait FloorCost {
@@ -17,7 +22,9 @@ pub trait FloorPlan {
 pub trait Cost {
     fn get_cost(&self) -> f64;
 }
-
+pub trait RandomSolution<T: Clone> {
+    fn random_solution(&self) -> T;
+}
 pub trait Solution<T: Clone> {
     fn copy_solution(&self) -> T;
     fn set_solution(&mut self, solution: T);
@@ -41,6 +48,7 @@ impl CostFunction {
         CostFunction { alpha, avg_wirelength, avg_area }
     }
 
+    /// computes the cost of a floorplan
     pub fn get_cost(&self, area: f64, wirelength: f64) -> f64 {
         let area_cost = area / self.avg_area;
         let wire_cost = wirelength / self.avg_wirelength;
@@ -48,6 +56,7 @@ impl CostFunction {
         cost
     }
     
+    /// computes the total used wirelength using half-perimenter estimation
     pub fn compute_wirelength(plan: &Floorplan, nets: &Vec<Net>) -> f64 {
         let mut total_wirelength: f64 = 0.0;
         for net in nets.iter() {
@@ -57,12 +66,12 @@ impl CostFunction {
                 let (center_x, center_y) = rect.center(pos_x, pos_y);
                 bounding_box.extend_point(center_x, center_y);
             }
-            // half perimeter estimation
+            // half-perimeter estimation
             total_wirelength += bounding_box.get_width() + bounding_box.get_height();
         }
         total_wirelength
     }
-
+    /// estimates avg-area and -wirelength by perturbation for the cost function
     pub fn compute_mean_parameters<T: Mutation<Move> + FloorCost, Move>(algo: &mut T, repetitions: usize) -> (f64, f64) {
         let mut sum_area = 0.0;
         let mut sum_wirelength = 0.0;
@@ -85,7 +94,7 @@ impl CostFunction {
         (sum_area / repetitions as f64, sum_wirelength / repetitions as f64)
     }
 
-    // returns dead area in percent
+    /// returns percentage of area not covered by boxes
     pub fn get_dead_area<T: FloorCost>(floor: &T, modules: &Vec<Rectangle>) -> f64{
         let occupied_area: usize = modules.iter()
             .map(|rect| rect.area())
@@ -98,6 +107,7 @@ impl CostFunction {
 
 /// greedy method to generate a linear ordering of the modules reducing wirelength
 /// reduced wirelength a bit, but increase area in experiments
+#[allow(dead_code)]
 pub fn cluster_growing_order(graph: &Hypergraph, start_node: Int) -> Vec<Int> {
     let mut order: Vec<Int> = vec![start_node];
     let mut placed_nodes: Vec<bool> = vec![false; graph.num_nodes];
@@ -129,6 +139,8 @@ pub fn cluster_growing_order(graph: &Hypergraph, start_node: Int) -> Vec<Int> {
     order
 }
 
+/// reorders a vector according to a given permutation
+#[allow(dead_code)]
 pub fn reorder_vec<T: Clone>(permutation: &Vec<usize>, vec: &Vec<T>) -> Vec<T> {
     let mut new_vec: Vec<T> = Vec::new();
     new_vec.reserve_exact(vec.len());
@@ -137,7 +149,6 @@ pub fn reorder_vec<T: Clone>(permutation: &Vec<usize>, vec: &Vec<T>) -> Vec<T> {
     }
     new_vec
 }
-
 #[cfg(test)]
 mod tests {
     use super::*;
