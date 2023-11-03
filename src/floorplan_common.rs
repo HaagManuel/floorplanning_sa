@@ -32,7 +32,7 @@ pub trait Solution<T: Clone> {
 
 #[derive(Debug)]
 pub struct CostFunction {
-    alpha: f64,
+    pub alpha: f64,
     avg_wirelength: f64,
     avg_area: f64,
 }

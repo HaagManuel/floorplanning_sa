@@ -55,15 +55,18 @@ impl PolishExpression {
         pe.modules = modules;
         pe.nets = nets;
         pe.tree = SlicingTree::new(n);
-        
-        pe.set_solution_all_vertical();
+        pe.cost_function = CostFunction::new(alpha, 1.0, 1.0);
 
-        // compute averages for cost function
-        let repetitions = 3 * n;
-        let (avg_wirelength,avg_area) = CostFunction::compute_mean_parameters(&mut pe, repetitions);
-        pe.cost_function = CostFunction::new(alpha, avg_wirelength, avg_area);
-        pe.current_cost = pe.cost_function.get_cost(pe.current_area, pe.current_wire);
+        pe.set_solution_all_vertical();
         pe
+    }
+
+    pub fn update_cost_function(&mut self) {
+        // compute averages for cost function
+        let repetitions = 3 * self.modules.len();
+        let (avg_wirelength,avg_area) = CostFunction::compute_mean_parameters(self, repetitions);
+        self.cost_function = CostFunction::new(self.cost_function.alpha, avg_wirelength, avg_area);
+        self.current_cost = self.cost_function.get_cost(self.current_area, self.current_wire);
     }
 
     pub fn update(&mut self) {
@@ -91,6 +94,29 @@ impl PolishExpression {
             solution.push(ModuleNode::V());
         }
         self.set_solution(solution);
+    }
+
+    pub fn set_solution_recursive_bisection(&mut self, order: &Vec<Int>) {
+        let solution = self.recursive_bisection(&order, 0, self.modules.len(), ModuleNode::H());
+        self.set_solution(solution);
+    }
+
+    // intervall [l, r)
+    fn recursive_bisection(&self, order: &Vec<Int>, left: usize, right: usize, split: ModuleNode) -> PolishExpressionSolution {
+        if right - left == 1 {
+            return vec![ModuleNode::Module(order[left])];
+        }
+        else if right - left == 2 {
+            return vec![ModuleNode::Module(order[left]), ModuleNode::Module(order[left + 1]), split];
+        }
+        else {
+            let mid = (left + right).div_ceil(2);
+            let mut s1 = self.recursive_bisection(order, left, mid, split.invert());
+            let mut s2 = self.recursive_bisection(order, mid, right, split.invert());
+            s1.append(&mut s2);
+            s1.push(split);
+            return s1;
+        }
     }
 
     fn get_num_operator(&self) -> Vec<usize> {
@@ -242,5 +268,6 @@ impl Solution<PolishExpressionSolution> for PolishExpression {
     fn set_solution(&mut self, solution: PolishExpressionSolution) {
         self.solution = solution;
         self.update();
+        self.update_cost_function()
     }
 }

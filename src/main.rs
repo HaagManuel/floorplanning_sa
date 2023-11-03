@@ -45,23 +45,26 @@ fn main() {
     println!("Hello, SA!");
     
     // let (blocks, nets) = parse_file("benchmark/n10.floor").unwrap();
-    let (blocks, nets) = parse_file("benchmark/n30.floor").unwrap();
-    // let (blocks, nets) = parse_file("benchmark/n300.floor").unwrap();
+    // let (blocks, nets) = parse_file("benchmark/n30.floor").unwrap();
+    let (blocks, nets) = parse_file("benchmark/n300.floor").unwrap();
     // let (blocks, nets) = random_instance(30, 50, 10, 100);
     let alpha: f64 = 0.5;
 
-    // let graph = Hypergraph::from(nets.clone());
-    // let order = cluster_growing_order(&graph, 0);
-    // let blocks = reorder_vec(&order, &blocks);
+    let graph = Hypergraph::from(nets.clone());
+    let order = cluster_growing_order(&graph, 0);
+    // let blocks: Vec<Rectangle> = reorder_vec(&order, &blocks);
     // blocks.sort_by_key(|rect| rect.width.max(rect.height));
     
     let net_list = nets.clone();
     let modules = blocks.clone();
     let num_blocks = blocks.len();
 
-    let mut p = SequencePair::new(blocks, nets, alpha);
-    // let mut p: PolishExpression = PolishExpression::new(blocks, nets, alpha);
+    let mut p: PolishExpression = PolishExpression::new(blocks, nets, alpha);
+    p.set_solution_recursive_bisection(&order);
+
+    // let mut p = SequencePair::new(blocks, nets, alpha);
     
+
     let plan_before = p.get_floorplan();
     let dead_area_before = CostFunction::get_dead_area(&p, &modules);
     let wire_before = p.get_floor_wire();
