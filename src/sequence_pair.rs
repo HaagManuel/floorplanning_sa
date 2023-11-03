@@ -1,4 +1,3 @@
-
 use crate::definitions::*;
 use crate::floorplan_common::*;
 use rand::prelude::*;
@@ -20,7 +19,6 @@ macro_rules! index{
            }
        }
    }
-
 
 impl SPMoveType {
     fn apply(&self, sequence_pair: &mut SequencePair) {
@@ -74,14 +72,49 @@ impl SequencePair {
         sp.index_y  = (0..n).collect();
 
         // update cost parameter
+        sp.cost_function = CostFunction::new(alpha, 1.0, 1.0);
         sp.update();
+        sp.update_cost_function();
 
-        // compute averages for cost function
-        let repetitions = 3 * n;
-        let (avg_wirelength,avg_area) = CostFunction::compute_mean_parameters(&mut sp, repetitions);
-        sp.cost_function = CostFunction::new(alpha, avg_wirelength, avg_area);
-        sp.current_cost = sp.compute_cost();
         sp
+    }
+
+    pub fn set_solution_recursive_bisection(&mut self, order: &Vec<Int>) {
+        let (x_sequence, y_sequence) = self.recursive_bisection(&order, 0, self.modules.len(), true);
+        self.set_solution((x_sequence, y_sequence, self.modules.clone()));
+    }
+
+    // intervall [l, r)
+    fn recursive_bisection(&self, order: &Vec<Int>, left: usize, right: usize, split_horizontal: bool) -> (Vec<Int>, Vec<Int>) {
+        if right - left == 1 {
+            let i = order[left];
+            return (vec![i], vec![i]);
+        }
+        else if right - left == 2 {
+            let i = order[left];
+            let j = order[left + 1];
+            if split_horizontal {
+                return (vec![i, j], vec![i, j]);
+            }
+            else {
+                return (vec![j, i], vec![i, j]);
+            }
+        }
+        else {
+            let mid = (left + right).div_ceil(2);
+            let (mut x1, mut y1) = self.recursive_bisection(order, left, mid, split_horizontal ^ true);
+            let (mut x2, mut y2) = self.recursive_bisection(order, mid, right, split_horizontal ^ true);
+            if split_horizontal {
+                x1.append(&mut x2);
+                y1.append(&mut y2);
+                return (x1, y1);
+            }
+            else {
+                x2.append(&mut x1);
+                y1.append(&mut y2);
+                return (x2, y1);
+            }
+        }
     }
 
     pub fn update(&mut self) {
@@ -89,6 +122,14 @@ impl SequencePair {
         self.current_area = self.bounding_box.area() as f64;
         self.current_wire = CostFunction::compute_wirelength(&self.placement, &self.nets);
         self.current_cost = self.compute_cost();
+    }
+
+    pub fn update_cost_function(&mut self) {
+        // compute averages for cost function
+        let repetitions = 3 * self.modules.len();
+        let (avg_wirelength,avg_area) = CostFunction::compute_mean_parameters(self, repetitions);
+        self.cost_function = CostFunction::new(self.cost_function.alpha, avg_wirelength, avg_area);
+        self.current_cost = self.cost_function.get_cost(self.current_area, self.current_wire);
     }
 
     pub fn compute_cost(&mut self) -> f64 {
@@ -236,6 +277,7 @@ impl Solution<SequencePairSolution> for SequencePair {
             self.index_y[*id] = pos;
         }
         self.update();
+        self.update_cost_function()
     }
 }
 

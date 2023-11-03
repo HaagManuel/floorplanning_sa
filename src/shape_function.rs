@@ -53,8 +53,6 @@ impl ShapeFunction {
         }
         None
     }
-
-
 }
 
 impl FromIterator<Rectangle> for ShapeFunction {
@@ -66,7 +64,6 @@ impl FromIterator<Rectangle> for ShapeFunction {
         sf
     }
 }
-
 #[cfg(test)]
 mod tests {
     use super::*;

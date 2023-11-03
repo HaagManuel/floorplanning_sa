@@ -50,6 +50,8 @@ fn main() {
     // let (blocks, nets) = random_instance(30, 50, 10, 100);
     let alpha: f64 = 0.5;
 
+    println!("modules: {}, nets: {}, alpha {}", blocks.len(), nets.len(), alpha);
+
     let graph = Hypergraph::from(nets.clone());
     let order = cluster_growing_order(&graph, 0);
     // let blocks: Vec<Rectangle> = reorder_vec(&order, &blocks);
@@ -59,11 +61,11 @@ fn main() {
     let modules = blocks.clone();
     let num_blocks = blocks.len();
 
-    let mut p: PolishExpression = PolishExpression::new(blocks, nets, alpha);
-    p.set_solution_recursive_bisection(&order);
+    // let mut p: PolishExpression = PolishExpression::new(blocks, nets, alpha);
+    // p.set_solution_recursive_bisection(&order);
 
-    // let mut p = SequencePair::new(blocks, nets, alpha);
-    
+    let mut p = SequencePair::new(blocks, nets, alpha);
+    // p.set_solution_recursive_bisection(&order);
 
     let plan_before = p.get_floorplan();
     let dead_area_before = CostFunction::get_dead_area(&p, &modules);
