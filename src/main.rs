@@ -43,7 +43,7 @@ where
 
 fn main() {
     println!("Hello, SA!");
-    
+
     // let (blocks, nets) = parse_file("benchmark/n10.floor").unwrap();
     // let (blocks, nets) = parse_file("benchmark/n30.floor").unwrap();
     let (blocks, nets) = parse_file("benchmark/n300.floor").unwrap();

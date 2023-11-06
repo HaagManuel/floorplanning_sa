@@ -12,19 +12,14 @@ pub enum SPMoveType {
     SwapBothSides(usize, usize, usize, usize), 
 }
 
-macro_rules! index{
-       ($a:expr,$b:expr,$n:expr)=>{
-           {
-               $a * ($n + 2) + $b
-           }
-       }
-   }
-
 impl SPMoveType {
     fn apply(&self, sequence_pair: &mut SequencePair) {
         match *self {
             SPMoveType::RotateModule(a) => sequence_pair.modules[a] = sequence_pair.modules[a].transpose(),
-            SPMoveType::SwapLeftSide(a, b) => sequence_pair.x_sequence.swap(a, b),
+            SPMoveType::SwapLeftSide(a, b) =>{
+                sequence_pair.x_sequence.swap(a, b);
+                sequence_pair.index_x.swap(sequence_pair.x_sequence[a], sequence_pair.x_sequence[b]);
+            }    
             SPMoveType::SwapRightSide(a, b) => {
                 sequence_pair.y_sequence.swap(a, b);
                 sequence_pair.index_y.swap(sequence_pair.y_sequence[a], sequence_pair.y_sequence[b]);
@@ -32,6 +27,7 @@ impl SPMoveType {
             SPMoveType::SwapBothSides(a, b, c, d) => {
                 sequence_pair.x_sequence.swap(a, b); 
                 sequence_pair.y_sequence.swap(c, d); 
+                sequence_pair.index_x.swap(sequence_pair.x_sequence[a], sequence_pair.x_sequence[b]);
                 sequence_pair.index_y.swap(sequence_pair.y_sequence[c], sequence_pair.y_sequence[d]);
             }   
         }
@@ -44,9 +40,10 @@ pub struct SequencePair {
     nets: Vec<Net>,
     x_sequence: Vec<Int>,
     y_sequence: Vec<Int>,
+    len_vec: Vec<Int>,
+    index_x: Vec<usize>, // index of number i in x_sequence
     index_y: Vec<usize>, // index of number i in y_sequence
     placement: Floorplan,
-    lcs_array: Vec<Int>, // linearize 2-dim array, ~5-8% faster
     
     cost_function: CostFunction,
     current_cost: f64,
@@ -62,13 +59,14 @@ impl SequencePair {
         
         // initialize data structures
         sp.placement = vec![(0,0, Rectangle::new(0, 0)); n];
-        sp.lcs_array = vec![0; (n + 2) * (n + 2)]; // border of zeros 
         sp.modules = modules;
         sp.nets = nets;
 
         // initial sequence
         sp.x_sequence = (0..n).collect();
         sp.y_sequence = (0..n).collect();
+        sp.len_vec = (0..n).collect();
+        sp.index_x  = (0..n).collect();
         sp.index_y  = (0..n).collect();
 
         // update cost parameter
@@ -136,60 +134,55 @@ impl SequencePair {
         self.cost_function.get_cost(self.current_area, self.current_wire)
     }
     
-    // O(n^2) later maybe O(n log n) with better algorithm
-    // compute longest common subsequenec between x- and y-sequence to determine coordinates
-    fn compute_lcs<F, W>(&mut self, f_i: F, weight: W) where 
-    F: Fn(usize) -> usize,
-    W: Fn(Rectangle) -> usize {
-        let n = self.x_sequence.len();
-        for a in 1..n+1{
-            for b in 1..n+1 {
-                let i = f_i(a); // normal or reversed order
-                let j = b - 1;
-                let id = self.x_sequence[i];
-                if id == self.y_sequence[j] {
-                    self.lcs_array[index!(a, b, n)] = self.lcs_array[index!(a - 1, b - 1, n)] + weight(self.modules[id]); // width or heigth
+    pub fn compute_floorplan(&mut self) {
+        let n = self.placement.len();
+
+        // x-coordinates
+        self.len_vec.fill(0);
+        for i in 0..n {
+            let x_id = self.x_sequence[i];
+            let pos_y = self.index_y[x_id];
+            let l = self.len_vec[pos_y];
+            self.placement[x_id].0 = l;
+            let t = l + self.modules[x_id].width;
+            for j in pos_y..n {
+                if t > self.len_vec[j] {
+                    self.len_vec[j] = t;
                 }
-                else {
-                    self.lcs_array[index!(a, b, n)] = self.lcs_array[index!(a - 1, b, n)].max(self.lcs_array[index!(a, b - 1, n)]);
+                else { 
+                    break;
                 }
             }
         }
-    }
 
-    pub fn compute_floorplan(&mut self) {
-        let n = self.placement.len();
-        let shift = |x: usize| {x - 1};
-        let reverse = |x: usize| {n - x};
-        let get_width  = |rect: Rectangle| {rect.width};
-        let get_height = |rect: Rectangle| {rect.height};
+        // y-coordinates
+        self.len_vec.fill(0);
+        for i in 0..n {
+            let y_id = self.y_sequence[i];
+            let pos_x = n - 1 - self.index_x[y_id]; // reversing x sequence -> lca(x^R, y)
+            let l = self.len_vec[pos_x];
+            self.placement[y_id].1 = l;
+            let t = l + self.modules[y_id].height;
+            for j in pos_x..n {
+                if t > self.len_vec[j] {
+                    self.len_vec[j] = t;
+                }
+                else { 
+                    break;
+                }
+            }
+        }
         
-        // lcs (x, y, widths)    --> x-coords
-        self.compute_lcs(shift, get_width);
-        self.bounding_box.width = self.lcs_array[index!(n, n, n)];
+        // write rotation of rectangles into floorplan
         for i in 0..n {
-            let id = self.x_sequence[i];
-            let pos_y = self.index_y[id];
-
-            // lcs array starts at 1
-            let width = self.modules[id].width;
-            let height = self.modules[id].height;
-            let x_coord = self.lcs_array[index!(i + 1, pos_y + 1, n)] - width;
-            self.placement[id] = (x_coord, 0, Rectangle::new(width, height));
+            let width = self.modules[i].width;
+            let height = self.modules[i].height;
+            self.placement[i].2 = Rectangle::new(width, height);
         }
-            
-        // lcs (x^R, y, heights) --> y-coords
-        self.compute_lcs(reverse, get_height);
-        self.bounding_box.height = self.lcs_array[index!(n, n, n)];
-        for i in 0..n {
-            let id = self.x_sequence[i];
-            let pos_y = self.index_y[id];
 
-            // lcs array is top of of box
-            let height = self.modules[id].height;
-            let y_coord = self.lcs_array[index!(n - i, pos_y + 1, n)] - height;
-            self.placement[id].1 = y_coord;
-        }
+        // compute bounding box
+        self.bounding_box.width = self.placement.iter().map(|(x, _, r)| *x + (*r).width).max().unwrap();
+        self.bounding_box.height = self.placement.iter().map(|(_, y, r)| *y + (*r).height).max().unwrap();
     }
 
     
@@ -273,6 +266,9 @@ impl Solution<SequencePairSolution> for SequencePair {
 
     fn set_solution(&mut self, solution: SequencePairSolution) {
         (self.x_sequence, self.y_sequence, self.modules) = solution;
+        for (pos, id) in self.x_sequence.iter().enumerate() {
+            self.index_x[*id] = pos;
+        }
         for (pos, id) in self.y_sequence.iter().enumerate() {
             self.index_y[*id] = pos;
         }
@@ -337,4 +333,3 @@ impl Crossover<SequencePairSolution> for SequencePair {
         (x_sequence, y_sequence, rect)
     }
 }
-
