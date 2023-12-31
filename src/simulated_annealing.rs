@@ -6,6 +6,12 @@ use crate::floorplan_common::*;
 // stop if T < T_init * threshold
 const TEMPERATURE_THRESHOLD: f64 = 0.000_001;
 
+pub struct SimulatedAnnealingConfig {
+    pub iterations: usize,
+    pub num_moves_estimation: usize,
+    pub inital_prob: f64,
+}
+
 pub struct SimulatedAnnealing {
     iterations: usize,
     initial_temperature: f64,
@@ -76,11 +82,11 @@ impl SimulatedAnnealing {
                 best_solution = instance.copy_solution();
             }
             if i % (self.iterations / 10) == 0 {
-                println!("it: {}, T {:.2}, cost {:.2}, delta {:.2}, best {:.2}", i, temperature, current_cost, delta, best_cost);
+                eprintln!("it: {}, T {:.2}, cost {:.2}, delta {:.2}, best {:.2}", i, temperature, current_cost, delta, best_cost);
             }
             temperature *= self.decay;
         }
-        println!("best cost {:?}", best_cost);
+        eprintln!("best cost {:?}", best_cost);
         instance.set_solution(best_solution);
     }
 

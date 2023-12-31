@@ -1,6 +1,11 @@
 
 use crate::{definitions::*, hypergraph::Hypergraph};
 
+pub struct  FloorplanInstance {
+    pub modules: Vec<Rectangle>,
+    pub nets: Vec<Net>,
+}
+
 pub trait Mutation<Move> {
     fn get_random_move(&mut self) -> Move;
     fn apply_move(&mut self, _move: &Move);
