@@ -9,3 +9,6 @@ authors = ["Manuel Haag"]
 rand = "0.8.5"
 draw = "0.2.6"
 clap = { version = "4.4.12", features = ["derive"] }
+
+[profile.release]
+debug = true

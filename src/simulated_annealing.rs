@@ -76,11 +76,14 @@ impl SimulatedAnnealing {
                 // reverse move
                 instance.apply_move(&_move);
             }
-
+            
+            // update best solution
             if new_cost < best_cost {
                 best_cost = new_cost;
                 best_solution = instance.copy_solution();
             }
+            
+            // logging
             if i % (self.iterations / 10) == 0 {
                 eprintln!("it: {}, T {:.2}, cost {:.2}, delta {:.2}, best {:.2}", i, temperature, current_cost, delta, best_cost);
             }
