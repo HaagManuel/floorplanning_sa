@@ -28,11 +28,11 @@ impl SimulatedAnnealing {
         let cost = instance.get_cost();
         for _ in 0..num_moves {
             let _move = instance.get_random_move();
-            instance.apply_move(&_move);
+            instance.apply_move(&_move, true);
             let new_cost = instance.get_cost();
             let delta = new_cost - cost;
             sum += delta.abs(); 
-            instance.apply_move(&_move);
+            instance.apply_move(&_move, false);
         }
         let delta_avg = sum / num_moves as f64;
         let e: f64 = 1.0_f64.exp();
@@ -64,7 +64,7 @@ impl SimulatedAnnealing {
         let mut current_cost: f64 = best_cost;
         for i in 0..self.iterations {
             let _move: Move = instance.get_random_move();
-            instance.apply_move(&_move);
+            instance.apply_move(&_move, true);
             let new_cost = instance.get_cost();
             let delta: f64 = new_cost - current_cost;
             
@@ -74,7 +74,7 @@ impl SimulatedAnnealing {
             }
             else {
                 // reverse move
-                instance.apply_move(&_move);
+                instance.apply_move(&_move, false);
             }
             
             // update best solution

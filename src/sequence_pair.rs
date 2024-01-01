@@ -230,9 +230,11 @@ impl Mutation<SPMoveType> for SequencePair {
         };
         move_type
     }
-    fn apply_move(&mut self, _move: &SPMoveType) {
+    fn apply_move(&mut self, _move: &SPMoveType, update: bool) {
         _move.apply(self);
-        self.update()
+        if update {
+            self.update()
+        }
     }
 }
 

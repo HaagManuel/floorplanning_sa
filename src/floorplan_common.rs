@@ -8,7 +8,7 @@ pub struct  FloorplanInstance {
 
 pub trait Mutation<Move> {
     fn get_random_move(&mut self) -> Move;
-    fn apply_move(&mut self, _move: &Move);
+    fn apply_move(&mut self, _move: &Move, update: bool);
 }
 
 pub trait Crossover<S: Clone> {
@@ -94,12 +94,12 @@ impl CostFunction {
         let mut sum_wirelength = 0.0;
         for _ in 0..repetitions {
             let _move: Move = algo.get_random_move();
-            algo.apply_move(&_move);
+            algo.apply_move(&_move, true);
             let wire = algo.get_floor_wire();
             let area = algo.get_floor_area();
             sum_area += area;
             sum_wirelength += wire;
-            algo.apply_move(&_move);
+            algo.apply_move(&_move, false);
             
         }
         if sum_wirelength == 0.0 {

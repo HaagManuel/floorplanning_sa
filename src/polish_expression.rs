@@ -232,7 +232,7 @@ impl Mutation<PEMoveType> for PolishExpression {
         move_type
     }
 
-    fn apply_move(&mut self, _move: &PEMoveType) {
+    fn apply_move(&mut self, _move: &PEMoveType, update: bool) {
         debug_assert!(self.tree.sanity_check(&self.solution));
         _move.apply(&mut self.solution);
         match _move {
@@ -240,7 +240,13 @@ impl Mutation<PEMoveType> for PolishExpression {
                 PEMoveType::SwapOperands(a, b) => self.tree.update_swap_leafs(*a, *b),
                 PEMoveType::SwapOperandOperator(a, b) => self.tree.update_swap_operand_operator(*a, *b),
         }
-        self.update();
+        if update {
+            self.update();
+        }
+        else {
+            // bring tree into a consistent state, but saves floorplan and wire computation
+            self.tree.recompute(&self.solution, &self.modules)
+        }
     }
 }
 
