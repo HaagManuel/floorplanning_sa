@@ -65,14 +65,26 @@ impl CostFunction {
     pub fn compute_wirelength(plan: &Floorplan, nets: &Vec<Net>) -> f64 {
         let mut total_wirelength: f64 = 0.0;
         for net in nets.iter() {
-            let mut bounding_box = BoundingBox::new(f64::MAX, -f64::MAX, f64::MAX, -f64::MAX);
-            for id in net.pins.iter() {
-                let (pos_x, pos_y, rect) = plan[*id];
-                let (center_x, center_y) = rect.center(pos_x, pos_y);
-                bounding_box.extend_point(center_x, center_y);
+            // compute manhatten distance
+            if net.pins.len() == 2 {
+                let id1 = net.pins[0];
+                let id2 = net.pins[1];
+                let (pos_x1, pos_y1, rect1) = plan[id1];
+                let (pos_x2, pos_y2, rect2) = plan[id2];
+                let (center_x1, center_y1) = rect1.center(pos_x1, pos_y1);
+                let (center_x2, center_y2) = rect2.center(pos_x2, pos_y2);
+                total_wirelength += (center_x1 - center_x2).abs() + (center_y1 - center_y2).abs();
             }
-            // half-perimeter estimation
-            total_wirelength += bounding_box.get_width() + bounding_box.get_height();
+            else {
+                let mut bounding_box = BoundingBox::new(f64::MAX, -f64::MAX, f64::MAX, -f64::MAX);
+                for id in net.pins.iter() {
+                    let (pos_x, pos_y, rect) = plan[*id];
+                    let (center_x, center_y) = rect.center(pos_x, pos_y);
+                    bounding_box.extend_point(center_x, center_y);
+                }
+                // half-perimeter estimation
+                total_wirelength += bounding_box.get_width() + bounding_box.get_height();
+            }
         }
         total_wirelength
     }
