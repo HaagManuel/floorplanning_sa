@@ -1,11 +1,14 @@
 use crate::shape_function::ShapeFunction;
-use crate::definitions::*;
+use crate::{definitions::*, polish_expression};
+
+const NO_PARENT: usize = usize::MAX;
 
 
 #[derive(Debug, Clone, Default)]
 struct SlicingTreeNode {
     left: usize,
     right: usize,
+    parent: usize,
     shape: ShapeFunction,
     module_type: ModuleNode,
 }
@@ -17,6 +20,7 @@ pub struct SlicingTree {
     node_placement: Vec<(usize, usize, Rectangle, ModuleNode)>,
     pub placement: Floorplan,
     stack: Vec<usize>,
+    update: Vec<bool>,
 }
 
 impl SlicingTree {
@@ -27,7 +31,8 @@ impl SlicingTree {
         let node_placement = vec![(0,0, Rectangle::new(0,0), ModuleNode::H()); num_nodes];
         let placement = vec![(0,0, Rectangle::new(0,0)); num_modules];
         let stack = Vec::new();
-        SlicingTree{root, nodes, node_placement, placement, stack}
+        let update = vec![true; num_nodes];
+        SlicingTree{root, nodes, node_placement, placement, stack, update}
     }
 
     pub fn recompute(&mut self, solution: &Vec<ModuleNode>, modules: &Vec<Rectangle>) {
@@ -35,9 +40,13 @@ impl SlicingTree {
         for module_node in solution.iter() {
             match *module_node {
                 ModuleNode::Module(id) => {
+                    self.stack.push(index);
+                    if !self.update[index] {
+                        index += 1;
+                        continue;
+                    }
                     let module: Rectangle = modules[id];
                     let sf = ShapeFunction::from_iter([module, module.transpose()]);
-                    self.stack.push(index);
                     self.nodes[index].module_type = *module_node;
                     self.nodes[index].shape = sf;
                     self.nodes[index].left = 0;
@@ -47,6 +56,14 @@ impl SlicingTree {
                 _ => {
                     let right = self.stack.pop().unwrap();
                     let left  = self.stack.pop().unwrap();
+                    self.stack.push(index);
+                    if !self.update[index] {
+                        index += 1;
+                        continue;
+                    }
+                    self.nodes[left].parent = index;
+                    self.nodes[right].parent = index;
+                    
                     let sf1: &ShapeFunction = &self.nodes[left].shape;
                     let sf2: &ShapeFunction = &self.nodes[right].shape;
                     let combined: ShapeFunction = ShapeFunction::combine(sf1, sf2, *module_node);
@@ -54,12 +71,13 @@ impl SlicingTree {
                     self.nodes[index].right = right;
                     self.nodes[index].module_type = *module_node;
                     self.nodes[index].shape = combined;
-                    self.stack.push(index);
                     index += 1;
                 }
             }
         }
-        let root = self.stack.pop().unwrap();
+        self.update.fill(false);
+        let root: usize = self.stack.pop().unwrap();
+        self.nodes[root].parent = NO_PARENT;
         debug_assert!(self.nodes[root].shape.points.len() > 0);
         self.root = root;
     }
@@ -116,5 +134,54 @@ impl SlicingTree {
     }
     pub fn get_min_area(&self) -> f64 {
         self.get_bounding_box().area() as f64
+    }
+
+    pub fn mark_path(&mut self, v: usize) {
+        let mut w = v;
+        while w != NO_PARENT {
+            self.update[w] = true;
+            w = self.nodes[w].parent;
+        }
+    }
+    
+    pub fn update_everything(&mut self) {
+        self.update.fill(true);
+    }
+
+    pub fn update_swap_leafs(&mut self, left: usize, right: usize) {
+        let parent1 = self.nodes[left].parent;
+        let parent2 = self.nodes[right].parent;
+        if parent1 == parent2 {
+            self.mark_path(parent1);
+        }
+        else {
+            self.mark_path(parent1);
+            self.mark_path(parent2);
+        }
+        self.update[left] = true;
+        self.update[right] = true;
+    }
+
+    pub fn update_invert_chain(&mut self, v: usize) {
+        self.mark_path(v);
+    }
+
+    pub fn update_swap_operand_operator(&mut self, left: usize, right: usize) {
+        self.mark_path(left);
+        self.mark_path(right);
+    }
+    
+    pub fn sanity_check(&self, polish_expression: &Vec<ModuleNode>) -> bool{
+        if self.nodes.len() != polish_expression.len() {
+            return false;
+        }
+        for i in 0..self.nodes.len() {
+            if self.nodes[i].module_type != polish_expression[i] {
+                dbg!(self.nodes[i].module_type);
+                dbg!(polish_expression[i]);
+                return false;
+            }
+        }
+        return true;
     }
 }

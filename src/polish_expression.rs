@@ -7,8 +7,8 @@ pub type PolishExpressionSolution = Vec<ModuleNode>;
 
 #[derive(Debug)]
 pub enum PEMoveType {
-    SwapOperands(usize, usize), 
     InvertChain(usize), // starting from usize
+    SwapOperands(usize, usize), 
     SwapOperandOperator(usize, usize), 
 }
 
@@ -233,7 +233,13 @@ impl Mutation<PEMoveType> for PolishExpression {
     }
 
     fn apply_move(&mut self, _move: &PEMoveType) {
+        debug_assert!(self.tree.sanity_check(&self.solution));
         _move.apply(&mut self.solution);
+        match _move {
+                PEMoveType::InvertChain(a) => self.tree.update_invert_chain(*a),
+                PEMoveType::SwapOperands(a, b) => self.tree.update_swap_leafs(*a, *b),
+                PEMoveType::SwapOperandOperator(a, b) => self.tree.update_swap_operand_operator(*a, *b),
+        }
         self.update();
     }
 }
@@ -267,6 +273,7 @@ impl Solution<PolishExpressionSolution> for PolishExpression {
 
     fn set_solution(&mut self, solution: PolishExpressionSolution) {
         self.solution = solution;
+        self.tree.update_everything();
         self.update();
         self.update_cost_function()
     }
