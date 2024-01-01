@@ -28,14 +28,16 @@ impl ShapeFunction {
     }
 
     pub fn combine(a: &ShapeFunction, b: &ShapeFunction, v_or_h: ModuleNode) -> ShapeFunction {
-        let mut sf: ShapeFunction = ShapeFunction::default();
+        let mut points: Vec<Rectangle> = Vec::new();
+        points.reserve_exact(a.points.len() * b.points.len());
         for i in 0..a.points.len() {
             for j in 0..b.points.len() {
                 let r1 = a.points[i];
                 let r2 = b.points[j];
-                sf.add(Rectangle::combine(r1, r2, v_or_h));
+                points.push(Rectangle::combine(r1, r2, v_or_h));
             }
         }
+        let mut sf: ShapeFunction = ShapeFunction{points};
         sf.filter_pareto_points();
         sf
     }
