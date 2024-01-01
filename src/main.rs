@@ -12,6 +12,7 @@ mod slicing_tree;
 mod floorplan_common;
 mod sequence_pair;
 mod hypergraph;
+mod time;
 
 use std::fmt::Debug;
 use crate::simulated_annealing::*;
@@ -23,7 +24,7 @@ use crate::definitions::*;
 use crate::hypergraph::*;
 use crate::instance_generator::random_instance;
 use crate::polish_expression::*;
-
+use crate::time::*;
 use clap::Parser;
 
 /// command line arguments
@@ -46,7 +47,11 @@ struct Args {
     #[arg(short, long, default_value_t = 1_000_000)]
     iterations: usize,
     
-    /// use cluster growing order
+    /// use recursive bisection to get inital solution
+    #[arg(short, long)]
+    recursive_bisection: bool,
+
+    /// use cluster growing order for recursive bisection
     #[arg(short, long)]
     cluster_growing: bool,
 
@@ -86,8 +91,10 @@ where
         let dead_area_before = CostFunction::get_dead_area(p, &modules);
         let wire_before = p.get_floor_wire();
         
+        let timer = Timer::new();
         run_simulated_annealing(p, sa_config);
-        
+        let time_ms = timer.get_passed_ms();
+
         let plan_after = p.get_floorplan();
         let dead_area_after = CostFunction::get_dead_area(p, &modules);
         let wire_after = p.get_floor_wire();
@@ -99,6 +106,7 @@ where
         eprintln!("{:.2?}% of wirelength before", wire_reduction);
         eprintln!("total area: {}", area_after);
         eprintln!("total wire: {}", wire_after);
+        eprintln!("time [s]: {:.2}", time_ms / 1000.0);
         
         let svg_image = &args.out_image;
         let draw_nets = false;
@@ -107,17 +115,19 @@ where
         }
 
         // output for csv
-        // instance, floorplan, alpha, time, total area, dead_area, total_wire, iterations
+        // instance, floorplan,alpha,time[ms],total_area,dead_area,total_wire,iterations,cluster_growing,recursive_bisection
         print!("{},", args.input);
         print!("{},", args.floorplan_type);
         print!("{},", args.alpha);
+        print!("{:.2},", time_ms);
         print!("{},", area_after);
         print!("{:.2},", dead_area_after);
         print!("{},", wire_after);
-        print!("{}", args.iterations);
+        print!("{},", args.iterations);
+        print!("{},", args.cluster_growing);
+        print!("{}", args.recursive_bisection);
         println!("")
     }
-
 
 fn cli() {
     let args = Args::parse();
@@ -127,6 +137,14 @@ fn cli() {
     let (blocks, nets) = parse_file(args.input.clone()).unwrap();
     eprintln!("modules: {}, nets: {}, alpha {}", blocks.len(), nets.len(), args.alpha);
     eprintln!("using {} floorplan representation", args.floorplan_type.clone());
+    if args.recursive_bisection {
+        if args.cluster_growing {
+            eprintln!("using recursive bisection with cluster growing");
+        }
+        else {
+            eprintln!("using recursive bisection");
+        }
+    }
     eprintln!("");
 
     let graph = Hypergraph::from(nets.clone());
@@ -147,12 +165,16 @@ fn cli() {
 
     if args.floorplan_type == "slicing_tree" {
         let mut p: PolishExpression = PolishExpression::new(blocks, nets, args.alpha);
-        p.set_solution_recursive_bisection(&order);
+        if args.recursive_bisection {
+            p.set_solution_recursive_bisection(&order);
+        } 
         run_algorithm(&mut p, sa_config, args, instance);
     }
     else if args.floorplan_type == "sequence_pair" {
         let mut p = SequencePair::new(blocks, nets, args.alpha);
-        p.set_solution_recursive_bisection(&order);
+        if args.recursive_bisection {
+            p.set_solution_recursive_bisection(&order);
+        } 
         run_algorithm(&mut p, sa_config, args, instance);
     }
     else {
