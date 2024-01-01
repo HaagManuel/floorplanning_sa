@@ -78,15 +78,6 @@ impl PolishExpression {
         self.num_operators = self.get_num_operator();   
     }
 
-    // first all module ids than HVHVHVH
-    pub fn set_solution_operator_top(&mut self) {
-        let n = self.modules.len();
-        let operators_it = (0..n).map(|x| ModuleNode::Module(x));
-        let operand_it = [ModuleNode::H(), ModuleNode::V()].into_iter().cycle().take(n - 1);
-        let solution: Vec<ModuleNode> = operators_it.chain(operand_it).collect();
-        self.set_solution(solution);
-    }
-
     pub fn set_solution_all_vertical(&mut self) {
         let mut solution: Vec<ModuleNode> = vec![ModuleNode::Module(0)];
         for i in 1..self.modules.len() {
@@ -141,18 +132,6 @@ impl PolishExpression {
                         return PEMoveType::SwapOperands(a, b);
                     }
                 }
-            }
-        }
-    }
-
-    fn get_swap_operands(&self) -> PEMoveType {
-        let mut rng: ThreadRng = rand::thread_rng();
-        let m = self.solution.len();
-        loop {
-            let a = rng.gen_range(0..m);
-            let b = rng.gen_range(0..m);
-            if self.solution[a].is_module() && self.solution[b].is_module() && a != b {
-                    return PEMoveType::SwapOperands(a, b);
             }
         }
     }

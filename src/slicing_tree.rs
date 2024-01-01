@@ -1,5 +1,5 @@
 use crate::shape_function::ShapeFunction;
-use crate::{definitions::*, polish_expression};
+use crate::definitions::*;
 
 const NO_PARENT: usize = usize::MAX;
 

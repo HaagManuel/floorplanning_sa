@@ -4,6 +4,7 @@ use std::time::*;
 
 /// This function will measure how long it takes to execute the given lambda,
 /// print the time and return the result of the lambda.
+#[allow(dead_code)]
 pub fn report_time<Out, F: FnOnce() -> Out>(name: &str, f: F) -> Out {
     let start = Instant::now();
     eprintln!("starting {}", name);
@@ -15,6 +16,7 @@ pub fn report_time<Out, F: FnOnce() -> Out>(name: &str, f: F) -> Out {
 
 /// This function will measure how long it takes to execute the given lambda
 /// and return a tuple of the result of the lambda and a duration object.
+#[allow(dead_code)]
 pub fn measure<Out, F: FnOnce() -> Out>(f: F) -> (Out, Duration) {
     let start = Instant::now();
     let res = f();
@@ -40,21 +42,25 @@ impl Timer {
     }
 
     /// Reset the `Timer`
+    #[allow(dead_code)]
     pub fn restart(&mut self) {
         self.start = Instant::now();
     }
 
     /// Print the passed time in ms since the timer was started
+    #[allow(dead_code)]
     pub fn report_passed_ms(&self) {
         eprintln!("{}ms", self.start.elapsed().as_secs_f64() * 1000.0);
     }
 
     /// Return the number of ms passed since the timer was started as a `i64`
+    #[allow(dead_code)]
     pub fn get_passed_ms(&self) -> f64 {
         self.start.elapsed().as_secs_f64() * 1000.0
     }
 
     /// Return the number of ms passed since the timer was started as a `std::time::Duration`
+    #[allow(dead_code)]
     pub fn get_passed(&self) -> Duration {
         self.start.elapsed()
     }
