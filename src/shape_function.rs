@@ -7,38 +7,47 @@ pub struct ShapeFunction {
 
 impl ShapeFunction {
     pub fn add(&mut self, rectangle: Rectangle) {
-        self.points.push(rectangle);
-    }
-
-    pub fn filter_pareto_points(&mut self) {
-        debug_assert!(self.points.len() > 0);
-        self.points.sort_by(|a, b| a.partial_cmp(b).unwrap());
-        let mut new_vec: Vec<Rectangle> = Vec::new(); // TODO may optimize
-        let mut lowest_height = self.points[0].height;
-        new_vec.push(self.points[0]);
-        for i in 1..self.points.len() {
-            let last_rect = self.points[i - 1];
-            let rect = self.points[i];
-            if last_rect.width < rect.width && rect.height < lowest_height{ 
-                new_vec.push(rect);
-                lowest_height = rect.height;
+        let h = rectangle.height;
+        let w = rectangle.width;
+        let mut i = 0;
+        let mut found_place = false;
+        // filter existing points
+        while i < self.points.len()  {
+            // is domininated
+            if w >= self.points[i].width && h >= self.points[i].height {
+                // do not add new rectangle
+                return;
             }
+            // is better
+            else if w <= self.points[i].width && h <= self.points[i].height {
+                if !found_place {
+                    // overwrite existing element
+                    found_place = true;
+                    self.points[i] = rectangle;
+                }
+                else {
+                    // swap to end and decrease size
+                    self.points.swap_remove(i);
+                }
+            }
+            i += 1
         }
-        self.points = new_vec;
+        if !found_place {
+            self.points.push(rectangle);
+        }
     }
 
     pub fn combine(a: &ShapeFunction, b: &ShapeFunction, v_or_h: ModuleNode) -> ShapeFunction {
         let mut points: Vec<Rectangle> = Vec::new();
         points.reserve_exact(a.points.len() * b.points.len());
+        let mut sf = ShapeFunction{points};
         for i in 0..a.points.len() {
             for j in 0..b.points.len() {
                 let r1 = a.points[i];
                 let r2 = b.points[j];
-                points.push(Rectangle::combine(r1, r2, v_or_h));
+                sf.add(Rectangle::combine(r1, r2, v_or_h));
             }
         }
-        let mut sf: ShapeFunction = ShapeFunction{points};
-        sf.filter_pareto_points();
         sf
     }
 
@@ -76,7 +85,6 @@ mod tests {
         sf.add(Rectangle::new(1, 1));
         sf.add(Rectangle::new(1, 1));
         sf.add(Rectangle::new(1, 1));
-        sf.filter_pareto_points();
         assert_eq!(sf.points, vec![Rectangle::new(1, 1)]);
     }
 
@@ -86,7 +94,6 @@ mod tests {
         sf.add(Rectangle::new(1, 1));
         sf.add(Rectangle::new(2, 1));
         sf.add(Rectangle::new(3, 1));
-        sf.filter_pareto_points();
         assert_eq!(sf.points, vec![Rectangle::new(1, 1)]);
     }
 
@@ -110,7 +117,6 @@ mod tests {
         sf.add(Rectangle::new(3, 4));
         sf.add(Rectangle::new(4, 3));
         sf.add(Rectangle::new(5, 2));
-        sf.filter_pareto_points();
         assert_eq!(sf.points, vec![
             Rectangle::new(1, 5),
             Rectangle::new(2, 4),
