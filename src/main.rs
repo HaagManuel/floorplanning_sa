@@ -42,7 +42,7 @@ struct Args {
     #[arg(short, long, default_value_t = 0.5)]
     alpha: f64,
 
-    /// number of SA iteraations
+    /// number of SA iterations
     #[arg(short, long, default_value_t = 1_000_000)]
     iterations: usize,
     
@@ -58,7 +58,7 @@ struct Args {
     #[arg(short, long)]
     save_image: bool,
 
-    /// path of output image if save_image is set
+    /// path to output image if save_image is set
     #[arg(short, long, default_value_t = String::from("floorplan.svg"))]
     out_image: String,
 }
@@ -114,7 +114,8 @@ where
         }
 
         // output for csv
-        // instance, floorplan,alpha,time[ms],total_area,dead_area,total_wire,iterations,cluster_growing,recursive_bisection
+        // header
+        // instance,floorplan,alpha,time[ms],total_area,dead_area,total_wire,iterations,cluster_growing,recursive_bisection
         print!("{},", args.input);
         print!("{},", args.floorplan_type);
         print!("{},", args.alpha);
