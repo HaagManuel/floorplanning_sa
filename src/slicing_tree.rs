@@ -3,6 +3,42 @@ use crate::definitions::*;
 
 const NO_PARENT: usize = usize::MAX;
 
+#[derive(Debug)]
+pub enum ModuleShape {
+    Hard(),
+    Rotatable(),
+    AspectRatios(usize),
+}
+
+impl From<String> for ModuleShape {
+    fn from(str: String) -> Self {
+        if str == "hard" {
+            ModuleShape::Hard()
+        }
+        else if str == "rotatable" {
+            ModuleShape::Rotatable()
+        }
+        else if str == "aspect_ratios" {
+            ModuleShape::AspectRatios(1)
+        }
+        else {
+            panic!("unsupported module_shape type")
+        }
+    }
+}
+impl ModuleShape {
+    pub fn set_min_module_length(&mut self, min_length: usize) {
+        if let ModuleShape::AspectRatios(_) = self {
+            *self = ModuleShape::AspectRatios(min_length);
+        } 
+    }
+}
+
+impl Default for ModuleShape {
+    fn default() -> Self {
+        Self::Rotatable()
+    }
+}
 
 #[derive(Debug, Clone, Default)]
 struct SlicingTreeNode {
@@ -21,6 +57,7 @@ pub struct SlicingTree {
     pub placement: Floorplan,
     stack: Vec<usize>,
     update: Vec<bool>,
+    module_shape: ModuleShape,
 }
 
 impl SlicingTree {
@@ -32,7 +69,41 @@ impl SlicingTree {
         let placement = vec![(0,0, Rectangle::new(0,0)); num_modules];
         let stack = Vec::new();
         let update = vec![true; num_nodes];
-        SlicingTree{root, nodes, node_placement, placement, stack, update}
+        let module_shape = ModuleShape::Rotatable();
+        SlicingTree{root, nodes, node_placement, placement, stack, update, module_shape}
+    }
+
+    pub fn set_module_shape(&mut self, module_shape: ModuleShape) {
+        self.module_shape = module_shape;
+    }
+
+    pub fn get_module_shape_function(&self, module: Rectangle) -> ShapeFunction{
+        match self.module_shape {
+            ModuleShape::Hard() => {
+                return ShapeFunction::from_iter([module]);
+            },
+            ModuleShape::Rotatable() => {
+                return ShapeFunction::from_iter([module, module.transpose()]);
+            },
+            ModuleShape::AspectRatios(min_length) => {
+                let area = module.area();
+                let mut shapes: Vec<Rectangle> = Vec::new();
+                let bound = f64::sqrt(area as f64) as usize + 1;
+                for a in min_length..bound {
+                    let b = area.div_ceil(a);
+                    if a * b == area {
+                        shapes.push(Rectangle::new(a, b));
+                        shapes.push(Rectangle::new(b, a));
+                    }
+                }
+                if shapes.len() == 0{
+                    shapes.push(module);
+                    shapes.push(module.transpose());
+                }
+                let shape_function = ShapeFunction{points: shapes};
+                return shape_function;
+            },
+        }
     }
 
     pub fn recompute(&mut self, solution: &Vec<ModuleNode>, modules: &Vec<Rectangle>) {
@@ -46,7 +117,7 @@ impl SlicingTree {
                         continue;
                     }
                     let module: Rectangle = modules[id];
-                    let sf = ShapeFunction::from_iter([module, module.transpose()]);
+                    let sf: ShapeFunction = self.get_module_shape_function(module);
                     self.nodes[index].module_type = *module_node;
                     self.nodes[index].shape = sf;
                     self.nodes[index].left = 0;

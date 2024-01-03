@@ -61,6 +61,10 @@ impl PolishExpression {
         pe
     }
 
+    pub fn set_module_shape(&mut self, module_shape: ModuleShape) {
+        self.tree.set_module_shape(module_shape)
+    }
+
     pub fn update_cost_function(&mut self) {
         // compute averages for cost function
         let repetitions = 3 * self.modules.len();

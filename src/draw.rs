@@ -97,7 +97,7 @@ pub fn draw_floorplan(plan: &Floorplan, file: &str, net_list: &Vec<Net>, draw_ne
     }
 
     // save the canvas as an svg
-    println!("--> drawing floorplan to {}", file);
+    eprintln!("--> drawing floorplan to {}", file);
     render::save(
         &canvas,
         file,

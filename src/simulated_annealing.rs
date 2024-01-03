@@ -87,6 +87,10 @@ impl SimulatedAnnealing {
             if i % (self.iterations / 10) == 0 {
                 eprintln!("it: {}, T {:.2}, cost {:.2}, delta {:.2}, best {:.2}", i, temperature, current_cost, delta, best_cost);
             }
+            // sample SA cost
+            // if i % 1000 == 0 {
+            //     println!("{:.3},{:.3}",current_cost, best_cost);
+            // }
             temperature *= self.decay;
         }
         eprintln!("best cost {:?}", best_cost);

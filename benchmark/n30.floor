@@ -1,6 +1,6 @@
 # num_blocks num_nets
 # width height (num_blocks times)
-# degree id1 id2 ... (num_nets times)
+# id1 id2 ... (num_nets times)
 30 147
 117 106
 44 45

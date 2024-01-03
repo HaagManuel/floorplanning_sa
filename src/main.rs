@@ -23,6 +23,7 @@ use crate::sequence_pair::*;
 use crate::definitions::*;
 use crate::hypergraph::*;
 use crate::polish_expression::*;
+use crate::slicing_tree::ModuleShape;
 use crate::time::*;
 use clap::Parser;
 
@@ -43,7 +44,7 @@ struct Args {
     alpha: f64,
 
     /// number of SA iterations
-    #[arg(short, long, default_value_t = 1_000_000)]
+    #[arg(short, long, default_value_t = 10_000_000)]
     iterations: usize,
     
     /// use recursive bisection to get inital solution
@@ -53,6 +54,14 @@ struct Args {
     /// use cluster growing order for recursive bisection
     #[arg(short, long)]
     cluster_growing: bool,
+
+    /// module shape type: hard, rotatable, aspect_ratios
+    #[arg(long, default_value_t = String::from("rotatable"))]
+    module_shape: String,
+
+    /// minimum length of a module when aspect_ratios in module_shape is used
+    #[arg(short, long, default_value_t=1)]
+    min_module_length: usize,
 
     /// save image of final floorplan
     #[arg(short, long)]
@@ -145,6 +154,12 @@ fn cli() {
             eprintln!("using recursive bisection");
         }
     }
+    if args.floorplan_type == "slicing_tree" {
+        eprintln!("using {} module shape", args.module_shape);
+        if args.module_shape == "aspect_ratios" {
+            eprintln!("using minimum module length {}", args.min_module_length);
+        }
+    }
     eprintln!("");
 
     let graph = Hypergraph::from(nets.clone());
@@ -165,6 +180,9 @@ fn cli() {
 
     if args.floorplan_type == "slicing_tree" {
         let mut p: PolishExpression = PolishExpression::new(blocks, nets, args.alpha);
+        let mut module_shape: ModuleShape = ModuleShape::from(args.module_shape.clone());
+        module_shape.set_min_module_length(args.min_module_length);
+        p.set_module_shape(module_shape);
         if args.recursive_bisection {
             p.set_solution_recursive_bisection(&order);
         } 
