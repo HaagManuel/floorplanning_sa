@@ -1,0 +1,5 @@
+instance,floorplan,alpha,time[ms],total_area,dead_area,total_wire,iterations,cluster_growing,recursive_bisection
+benchmark/n300.floor,sequence_pair,0.8,207644.76,291958,6.44,505205,10000000,true,true
+benchmark/n300.floor,slicing_tree,0.8,257668.34,314088,13.03,535110,10000000,true,true
+benchmark/n300.floor,sequence_pair,0.8,394036.58,296736,7.94,480047,20000000,true,true
+benchmark/n300.floor,slicing_tree,0.8,542275.43,613085,55.44,800820.5,20000000,true,true
