@@ -34,10 +34,12 @@ cargo run --release -- -h
 ### Example Floorplan
 Here is a floorplan of the 300 module instance from [GSRC-benchmark](http://vlsicad.eecs.umich.edu/BK/GSRCbench/
 ) optimized for area (6.44% dead area).
-![floorplan](eval/sp_floorplan_1_10_7.svg)
+![floorplan](/eval/sp_floorplan_1_10_7.svg)
 
 
 ### Some Results
 Plots show mean, min and max of running Simulated Annealing with $10^7$ iterations and 5 repetitions.
-![plot1](eval/alphas_deadarea.png)
-![plot2](eval/alphas_wire.png)
+
+![plot1](/eval/alphas_deadarea.png)
+
+![plot2](/eval/alphas_wire.png)
