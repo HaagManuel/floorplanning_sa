@@ -1,11 +1,16 @@
 # Floorplanning with Simulated Annealing
 
 This project is part of the course [Algorithms for VLSI](https://www.fib.upc.edu/en/studies/masters/master-innovation-and-research-informatics/curriculum/syllabus/AVLSI-MIRI) taught at the UPC FIB in Barcelona.
-In Floorplanning the task is to place a set of rectangular modules in the plane minimizing area (minimum bounding box) and the wirelength (sum of interconnected lengths).
+In Floorplanning the task is to place a set of rectangular modules connected by wires in the plane minimizing area $A$ (minimum bounding box) and the wirelength $W$ (sum of interconnected lengths).
+The objective function is given by
+$$
+\alpha A + (1 - \alpha) W,
+$$
+where $\alpha$ is a hyperparameter controlling the importance of area and wirelength.
 
 Here we consider rotatable modules with fixed width and height.  
 A common approach is to apply [Simulated Annealing](https://en.wikipedia.org/wiki/Simulated_annealing) to a floorplan representation.
-The repository contains Rust implementations of [Normalized Polish Expression](https://janders.eecg.utoronto.ca/1387/readings/wong_fp.pdf) and [Sequence Pair](https://ieeexplore.ieee.org/document/480159) representations.
+The repository contains Rust implementations of the [Normalized Polish Expression](https://janders.eecg.utoronto.ca/1387/readings/wong_fp.pdf) and the [Sequence Pair](https://ieeexplore.ieee.org/document/480159) floorplan representations.
 
 
 ### Installing Rust
@@ -38,7 +43,8 @@ Here is a floorplan of the 300 module instance from [GSRC-benchmark](http://vlsi
 
 
 ### Some Results
-Plots show mean, min and max of running Simulated Annealing with $10^7$ iterations and 5 repetitions.
+The plots show mean, min and max dead area/wirelength of 5 repetitions.
+We run Simulated Annealing with $10^7$ iterations.
 
 ![plot1](/eval/alphas_deadarea.png)
 
