@@ -2,7 +2,7 @@
 
 This project is part of the course [Algorithms for VLSI](https://www.fib.upc.edu/en/studies/masters/master-innovation-and-research-informatics/curriculum/syllabus/AVLSI-MIRI) taught at the UPC FIB in Barcelona.
 In Floorplanning the task is to place a set of rectangular modules connected by wires in the plane minimizing area $A$ (minimum bounding box) and the wirelength $W$ (sum of interconnected lengths).
-The objective function is given by $\alpha A + (1 - \alpha) W, where $\alpha$ is a hyperparameter controlling the importance of area and wirelength.
+The objective function is given by $\alpha A + (1 - \alpha) W$, where $\alpha$ is a hyperparameter controlling the importance of area and wirelength.
 
 Here we consider rotatable modules with fixed width and height.  
 A common approach is to apply [Simulated Annealing](https://en.wikipedia.org/wiki/Simulated_annealing) to a floorplan representation.
